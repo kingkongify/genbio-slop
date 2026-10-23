@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1b5e20">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>BioMaster: Philippine Flora & Fauna</title>
+<style>
+  :root {
+    --primary: #1b5e20;
+    --primary-light: #4c8c4a;
+    --on-primary: #ffffff;
+    --accent: #ff9800;
+    --accent-text: #e65100;
+    --accent-bg: #fff8e1;
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafafa;
+    --nav-bg: #e8ede8;
+    --text: #212121;
+    --text-muted: #666666;
+    --success: #2e7d32;
+    --success-bg: #e8f5e9;
+    --danger: #c62828;
+    --danger-bg: #ffebee;
+    --hover-bg: #f1f8e9;
+    --card-back: #f9fff9;
+    --animal-bg: #e3f2fd;
+    --animal-text: #1565c0;
+    --track: #eeeeee;
+    --neutral-btn: #eeeeee;
+    --neutral-btn-hover: #e0e0e0;
+    --border: #e0e0e0;
+    --radius: 12px;
+    --shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #81c784;
+      --primary-light: #a5d6a7;
+      --on-primary: #0d1f0e;
+      --accent: #ffb74d;
+      --accent-text: #ffb74d;
+      --accent-bg: #3a2e17;
+      --bg: #121614;
+      --surface: #1c211e;
+      --surface-2: #232a25;
+      --nav-bg: #1a201c;
+      --text: #e8ece9;
+      --text-muted: #9aa59e;
+      --success: #81c784;
+      --success-bg: #1e3321;
+      --danger: #ef9a9a;
+      --danger-bg: #3a1f1f;
+      --hover-bg: #223024;
+      --card-back: #1f2a21;
+      --animal-bg: #1a2a3a;
+      --animal-text: #90caf9;
+      --track: #2c332e;
+      --neutral-btn: #2a312c;
+      --neutral-btn-hover: #343c36;
+      --border: #333c36;
+      --shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--bg); color: var(--text); min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); -webkit-tap-highlight-color: transparent; }
+  button { color: inherit; touch-action: manipulation; }
+  button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* App Container */
+  .app-container { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* Header */
+  header { text-align: center; padding: 8px 44px; position: relative; }
+  header h1 { color: var(--primary); font-size: 1.8rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
+  .icon-btn { position: absolute; top: 8px; right: 0; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 1.1rem; }
+
+  /* Navigation Bar */
+  .nav-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--nav-bg); padding: 6px; border-radius: var(--radius); }
+  .tab-btn { padding: 10px 4px; border: none; background: transparent; font-weight: 600; font-size: 0.85rem; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .tab-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+
+  /* Filter Bar */
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; background: var(--surface); padding: 10px 16px; border-radius: var(--radius); box-shadow: var(--shadow); font-size: 0.85rem; }
+  .filter-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .filter-btn { padding: 6px 12px; border: 1px solid var(--border); background: var(--surface); border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+  .filter-btn.active { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .badge { background: var(--success-bg); color: var(--primary); padding: 4px 10px; border-radius: 12px; font-weight: 600; }
+
+  /* View Panels */
+  .view-panel { display: none; background: var(--surface); padding: 24px; border-radius: var(--radius); box-shadow: var(--shadow); min-height: 440px; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  .view-panel.active { display: flex; }
+
+  /* Tag Styling */
+  .tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; margin-bottom: 8px; display: inline-block; }
+  .tag-animal { background: var(--animal-bg); color: var(--animal-text); }
+  .tag-plant { background: var(--success-bg); color: var(--success); }
+
+  .feedback { min-height: 1.4em; margin-top: 14px; font-weight: 600; font-size: 0.95rem; text-align: center; }
+  .feedback.good { color: var(--success); }
+  .feedback.bad { color: var(--danger); }
+  .kbd-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 14px; text-align: center; }
+  kbd { font-family: inherit; font-size: 0.7rem; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; background: var(--surface-2); }
+
+  /* ----------------------------------------------------
+     MODE 1: FLASHCARDS
+  ---------------------------------------------------- */
+  .progress-track { width: 100%; max-width: 420px; height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0; background: var(--success); transition: width 0.3s; }
+
+  .flashcard-wrapper { perspective: 1000px; width: 100%; max-width: 420px; height: 240px; margin: 16px 0 8px; cursor: pointer; border-radius: var(--radius); touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .flashcard-wrapper.swiping .flashcard { transition: none; }
+  .flashcard { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); border-radius: var(--radius); }
+  .flashcard.no-anim { transition: none; }
+  .flashcard.flipped { transform: rotateY(180deg); }
+  .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: var(--radius); border: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px; text-align: center; background: var(--surface); }
+  .card-back { transform: rotateY(180deg); background: var(--card-back); border-color: var(--primary-light); }
+  .card-title { font-size: 1.8rem; font-weight: 700; color: var(--text); }
+  .card-sub { font-size: 1.6rem; font-style: italic; color: var(--primary); font-weight: 600; }
+  .card-hint { font-size: 0.8rem; color: var(--text-muted); }
+  .card-hint.bottom { position: absolute; bottom: 16px; }
+
+  .leitner-controls { display: flex; gap: 12px; width: 100%; max-width: 420px; margin-top: 8px; }
+  .btn-review, .btn-gotit { flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.15s; }
+  .btn-review { background: var(--danger-bg); color: var(--danger); border: 1.5px solid var(--danger); }
+  .btn-gotit { background: var(--success-bg); color: var(--success); border: 1.5px solid var(--success); }
+  .btn-review:disabled, .btn-gotit:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .deck-stats { font-size: 0.85rem; color: var(--text-muted); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; }
+  .link-btn { background: none; border: none; color: var(--text-muted); text-decoration: underline; cursor: pointer; font-size: 0.8rem; }
+
+  .fc-done { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 0; }
+  .fc-done .big { font-size: 3rem; }
+  .fc-done h2 { color: var(--primary); }
+  .fc-done p { color: var(--text-muted); }
+
+  /* ----------------------------------------------------
+     MODE 2: QUICK QUIZ
+  ---------------------------------------------------- */
+  .quiz-header { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .streak-chip { font-weight: bold; color: var(--accent-text); display: flex; align-items: center; gap: 4px; }
+  .score-chip { font-weight: bold; color: var(--primary); }
+  .score-chip small { color: var(--text-muted); font-weight: 500; margin-left: 8px; }
+  .timer-container { width: 100%; height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; margin-bottom: 20px; }
+  .timer-bar { height: 100%; width: 100%; background: var(--primary); }
+
+  .quiz-question-box { text-align: center; margin-bottom: 24px; }
+  .quiz-question-sub { font-size: 0.9rem; color: var(--text-muted); }
+  .quiz-question-target { font-size: 1.8rem; font-weight: bold; color: var(--primary); margin-top: 6px; }
+
+  .quiz-options { width: 100%; display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media(min-width: 500px) { .quiz-options { grid-template-columns: 1fr 1fr; } }
+  .quiz-opt-btn { position: relative; padding: 14px 14px 14px 40px; border: 2px solid var(--border); background: var(--surface); border-radius: 10px; cursor: pointer; font-size: 1rem; font-style: italic; transition: all 0.2s; text-align: center; }
+  .quiz-opt-btn .opt-key { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 0.75rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
+  .quiz-opt-btn:disabled { cursor: default; }
+  .quiz-opt-btn.correct { background: var(--success-bg); border-color: var(--success); color: var(--success); font-weight: bold; }
+  .quiz-opt-btn.wrong { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+
+  /* ----------------------------------------------------
+     MODE 3: PAIR & MATCH
+  ---------------------------------------------------- */
+  .match-grid { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+  .match-card { min-height: 96px; min-width: 0; background: var(--surface); border: 2px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; font-size: 0.8rem; font-weight: 600; line-height: 1.25; cursor: pointer; transition: all 0.25s; user-select: none; overflow-wrap: break-word; word-break: break-word; hyphens: auto; -webkit-hyphens: auto; }
+  .match-card.scientific { font-style: italic; color: var(--primary); }
+  .match-card.selected { border-color: var(--accent); background: var(--accent-bg); transform: scale(0.96); }
+  .match-card.mismatch { border-color: var(--danger); background: var(--danger-bg); }
+  .match-card.matched { border-color: var(--success); background: var(--success-bg); color: var(--success); opacity: 0.4; cursor: default; transform: none; }
+  .match-meta { display: flex; justify-content: space-between; width: 100%; font-size: 0.9rem; font-weight: 600; }
+
+  /* ----------------------------------------------------
+     MODE 4: SPELLING BEE
+  ---------------------------------------------------- */
+  .spell-target-box { text-align: center; margin-bottom: 20px; }
+  .spell-target-name { font-size: 1.8rem; font-weight: bold; color: var(--primary); margin: 6px 0; }
+
+  /* Each word is kept together and shrinks to fit, so long names never break mid-word */
+  .spell-answer-container { display: flex; flex-wrap: wrap; gap: 10px 18px; justify-content: center; margin-bottom: 24px; min-height: 48px; padding: 8px; background: var(--surface-2); border-radius: 8px; border: 1px dashed var(--border); width: 100%; }
+  .spell-word { display: flex; gap: 5px; max-width: 100%; min-width: 0; }
+  .spell-slot { flex: 0 1 30px; min-width: 14px; height: 42px; border-bottom: 3px solid var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: bold; font-style: italic; transition: border-color 0.2s, color 0.2s; }
+  .spell-slot.ok { border-bottom-color: var(--success); color: var(--success); }
+  .spell-slot.bad { border-bottom-color: var(--danger); color: var(--danger); }
+  .spell-slot.revealed { color: var(--accent-text); border-bottom-color: var(--accent); }
+
+  .spell-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 520px; margin-bottom: 20px; }
+  .tile-btn { width: 40px; height: 42px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.1s; }
+  .tile-btn:active { transform: translateY(2px); }
+  .tile-btn.used { opacity: 0.2; pointer-events: none; }
+
+  .spell-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .action-btn { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; background: var(--neutral-btn); color: var(--text); }
+  .action-btn:active { background: var(--neutral-btn-hover); }
+
+  /* Utility Buttons */
+  .primary-btn { background: var(--primary); color: var(--on-primary); padding: 10px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 12px; }
+
+  /* Hover styles only on devices with a real pointer, so they don't "stick" after a tap */
+  @media (hover: hover) {
+    .btn-review:hover:not(:disabled) { background: var(--danger); color: var(--surface); }
+    .btn-gotit:hover:not(:disabled) { background: var(--success); color: var(--surface); }
+    .quiz-opt-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--hover-bg); }
+    .match-card:hover:not(.matched) { border-color: var(--primary-light); }
+    .action-btn:hover { background: var(--neutral-btn-hover); }
+    .primary-btn:hover { background: var(--primary-light); }
+  }
+
+  /* Touch devices: swap keyboard hints for touch hints */
+  .touch-only { display: none; }
+  @media (hover: none) {
+    .key-only, .quiz-opt-btn .opt-key { display: none; }
+    .touch-only { display: inline; }
+    .quiz-opt-btn { padding: 14px; }
+  }
+
+  /* ----------------------------------------------------
+     PHONES
+  ---------------------------------------------------- */
+  @media (max-width: 560px) {
+    .app-container { gap: 12px; }
+    header { padding: 4px 44px; }
+    header h1 { font-size: 1.4rem; }
+    header p { font-size: 0.8rem; }
+    .icon-btn { top: 2px; }
+
+    .nav-tabs { position: sticky; top: 0; z-index: 10; padding: 4px; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .tab-btn { flex-direction: column; gap: 2px; padding: 8px 2px; font-size: 0.72rem; min-height: 52px; }
+    .tab-icon { font-size: 1.15rem; line-height: 1; }
+
+    .filter-bar { padding: 8px; }
+    .filter-group { flex: 1; flex-wrap: nowrap; }
+    .filter-btn { flex: 1; padding: 9px 4px; white-space: nowrap; }
+    .badge { display: none; }
+
+    .view-panel { padding: 16px 12px; min-height: 0; justify-content: flex-start; }
+
+    .flashcard-wrapper { height: 220px; }
+    .card-title { font-size: 1.5rem; }
+    .card-sub { font-size: 1.35rem; }
+    .btn-review, .btn-gotit { padding: 14px 8px; font-size: 0.95rem; }
+
+    .quiz-question-box { margin-bottom: 16px; }
+    .quiz-question-target, .spell-target-name { font-size: 1.5rem; }
+    .quiz-opt-btn { min-height: 54px; }
+
+    .match-grid { gap: 6px; margin: 12px 0; }
+    .match-card { min-height: 78px; font-size: 0.7rem; padding: 4px 3px; border-radius: 8px; }
+
+    .spell-target-box { margin-bottom: 14px; }
+    .spell-answer-container { padding: 8px 4px; margin-bottom: 16px; gap: 10px 14px; }
+    .spell-word { gap: 3px; }
+    .spell-slot { flex-basis: 24px; height: 36px; font-size: 1.05rem; border-bottom-width: 2px; }
+    .spell-pool { gap: 6px; margin-bottom: 16px; }
+    .tile-btn { width: 42px; height: 46px; font-size: 1.15rem; }
+    .spell-actions { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+    .action-btn { padding: 12px 4px; font-size: 0.8rem; }
+    .primary-btn { width: 100%; padding: 14px; }
+  }
+
+  @media (max-width: 360px) {
+    .match-card { font-size: 0.64rem; min-height: 72px; }
+    .tile-btn { width: 38px; height: 44px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <header>
+    <h1>🌿 BioMaster Ph</h1>
+    <p>Memorize Philippine Flora & Fauna Scientific Names</p>
+    <button class="icon-btn" id="sound-btn" onclick="toggleSound()" aria-label="Toggle sound">🔊</button>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-mode="flashcard" onclick="switchMode('flashcard')"><span class="tab-icon">📇</span><span>Flashcards</span></button>
+    <button class="tab-btn" data-mode="quiz" onclick="switchMode('quiz')"><span class="tab-icon">⚡</span><span>Quiz</span></button>
+    <button class="tab-btn" data-mode="match" onclick="switchMode('match')"><span class="tab-icon">🧩</span><span>Match</span></button>
+    <button class="tab-btn" data-mode="spell" onclick="switchMode('spell')"><span class="tab-icon">✍️</span><span>Spelling</span></button>
+  </nav>
+
+  <!-- Filter & Stats -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <button class="filter-btn active" id="filter-all" onclick="setCategory('all')">All</button>
+      <button class="filter-btn" id="filter-animal" onclick="setCategory('animal')">Animals</button>
+      <button class="filter-btn" id="filter-plant" onclick="setCategory('plant')">Plants</button>
+    </div>
+    <div class="badge" id="pool-counter"></div>
+  </div>
+
+  <!-- MODE 1: FLASHCARDS -->
+  <div class="view-panel active" id="panel-flashcard">
+    <div class="progress-track"><div class="progress-fill" id="fc-progress"></div></div>
+
+    <div id="fc-study" style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 16px;">
+      <div class="tag" id="fc-tag">Animal</div>
+      <div class="flashcard-wrapper" id="fc-wrapper" role="button" tabindex="0" aria-label="Flip card" onclick="onCardClick()">
+        <div class="flashcard" id="main-flashcard">
+          <!-- Front -->
+          <div class="card-face card-front">
+            <div class="card-hint">LOCAL NAME</div>
+            <div class="card-title" id="fc-front"></div>
+            <div class="card-hint bottom">Tap to reveal scientific name 👆</div>
+          </div>
+          <!-- Back -->
+          <div class="card-face card-back">
+            <div class="card-hint">SCIENTIFIC NAME</div>
+            <div class="card-sub" id="fc-back"></div>
+            <div class="card-hint bottom">Did you remember it?</div>
+          </div>
+        </div>
+      </div>
+      <div class="leitner-controls">
+        <button class="btn-review" id="btn-review" onclick="leitnerAnswer(false)" disabled>↺ Review Again</button>
+        <button class="btn-gotit" id="btn-gotit" onclick="leitnerAnswer(true)" disabled>✓ Got It!</button>
+      </div>
+      <div class="kbd-hint">
+        <span class="key-only"><kbd>Space</kbd> flip · <kbd>←</kbd> review again · <kbd>→</kbd> got it</span>
+        <span class="touch-only">Tap to flip · after flipping, swipe ← review again · swipe → got it</span>
+      </div>
+    </div>
+
+    <div class="fc-done" id="fc-done" style="display: none;">
+      <div class="big">🎉</div>
+      <h2>All mastered!</h2>
+      <p>You've learned every card in this set.</p>
+      <button class="primary-btn" onclick="resetDeck()">↺ Study Again</button>
+    </div>
+
+    <div class="deck-stats">
+      <span>Queue: <strong id="fc-queue-count">0</strong></span>
+      <span>•</span>
+      <span>Mastered: <strong id="fc-mastered-count">0</strong></span>
+      <button class="link-btn" onclick="resetDeck()">Reset progress</button>
+    </div>
+  </div>
+
+  <!-- MODE 2: QUICK QUIZ -->
+  <div class="view-panel" id="panel-quiz">
+    <div class="quiz-header">
+      <div class="streak-chip">🔥 Streak: <span id="quiz-streak">0</span> (<span id="quiz-mult">1x</span>)</div>
+      <div class="score-chip">Score: <span id="quiz-score">0</span><small>Best: <span id="quiz-best">0</span></small></div>
+    </div>
+    <div class="timer-container"><div class="timer-bar" id="quiz-timer"></div></div>
+
+    <div class="quiz-question-box">
+      <span class="tag" id="quiz-tag">Animal</span>
+      <div class="quiz-question-sub">What is the scientific name for:</div>
+      <div class="quiz-question-target" id="quiz-target"></div>
+    </div>
+
+    <div class="quiz-options" id="quiz-options-container">
+      <!-- 4 Options injected via JS -->
+    </div>
+    <div class="feedback" id="quiz-feedback"></div>
+    <div class="kbd-hint key-only">Press <kbd>1</kbd>–<kbd>4</kbd> to answer</div>
+  </div>
+
+  <!-- MODE 3: PAIR & MATCH -->
+  <div class="view-panel" id="panel-match">
+    <div class="match-meta">
+      <div>Pairs Found: <span id="match-pairs-count">0</span> / 8</div>
+      <div>Mistakes: <span id="match-mistakes">0</span></div>
+    </div>
+    <div class="match-grid" id="match-grid">
+      <!-- 16 tiles injected via JS -->
+    </div>
+    <div class="feedback good" id="match-feedback"></div>
+    <button class="primary-btn" onclick="initMatchMode()">🔄 New Round</button>
+  </div>
+
+  <!-- MODE 4: SPELLING BEE -->
+  <div class="view-panel" id="panel-spell">
+    <div class="spell-target-box">
+      <span class="tag" id="spell-tag">Plant</span>
+      <div class="quiz-question-sub">Spell the scientific name for:</div>
+      <div class="spell-target-name" id="spell-target-name"></div>
+      <div class="quiz-question-sub">Solved: <strong id="spell-solved">0</strong></div>
+    </div>
+
+    <!-- Letter Slots -->
+    <div class="spell-answer-container" id="spell-slots"></div>
+
+    <!-- Scrambled Letter Tiles -->
+    <div class="spell-pool" id="spell-pool"></div>
+
+    <div class="spell-actions">
+      <button class="action-btn" onclick="spellBackspace()">⌫ Backspace</button>
+      <button class="action-btn" onclick="spellClear()">Reset</button>
+      <button class="action-btn" onclick="spellHint()">💡 Hint</button>
+      <button class="action-btn" onclick="spellReveal()">👁 Reveal</button>
+      <button class="action-btn" onclick="nextSpellItem()">Next →</button>
+    </div>
+    <div class="feedback" id="spell-feedback"></div>
+    <div class="kbd-hint key-only">Type on your keyboard · <kbd>Backspace</kbd> to undo</div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   DATASET: 49 Animals + 49 Plants (98 Total)
+===================================================================== */
+const DATA = [
+  // 49 Animals
+  { id: 1, type: "animal", local: "Carabao / Kalabaw", sci: "Bubalus bubalis" },
+  { id: 2, type: "animal", local: "Aso", sci: "Canis lupus familiaris" },
+  { id: 3, type: "animal", local: "Pusa", sci: "Felis catus" },
+  { id: 4, type: "animal", local: "Manok", sci: "Gallus gallus domesticus" },
+  { id: 5, type: "animal", local: "Baboy", sci: "Sus scrofa domesticus" },
+  { id: 6, type: "animal", local: "Kambing", sci: "Capra aegagrus hircus" },
+  { id: 7, type: "animal", local: "Baka", sci: "Bos taurus" },
+  { id: 8, type: "animal", local: "Kabayo", sci: "Equus ferus caballus" },
+  { id: 9, type: "animal", local: "Itik", sci: "Anas platyrhynchos" },
+  { id: 10, type: "animal", local: "Tilapia", sci: "Oreochromis niloticus" },
+  { id: 11, type: "animal", local: "Bangus", sci: "Chanos chanos" },
+  { id: 12, type: "animal", local: "Maya", sci: "Passer montanus" },
+  { id: 13, type: "animal", local: "Kalapati", sci: "Columba livia" },
+  { id: 14, type: "animal", local: "Philippine Eagle", sci: "Pithecophaga jefferyi" },
+  { id: 15, type: "animal", local: "Palaka", sci: "Fejervarya cancrivora" },
+  { id: 16, type: "animal", local: "Butiki", sci: "Hemidactylus frenatus" },
+  { id: 17, type: "animal", local: "Ahas", sci: "Python reticulatus" },
+  { id: 18, type: "animal", local: "Buwaya", sci: "Crocodylus porosus" },
+  { id: 19, type: "animal", local: "Langgam", sci: "Solenopsis geminata" },
+  { id: 20, type: "animal", local: "Bubuyog", sci: "Apis cerana" },
+  { id: 21, type: "animal", local: "Paruparo", sci: "Papilio polytes" },
+  { id: 22, type: "animal", local: "Lamok", sci: "Aedes aegypti" },
+  { id: 23, type: "animal", local: "Ipis", sci: "Periplaneta americana" },
+  { id: 24, type: "animal", local: "Gagamba", sci: "Dolichognatha junlitjri" },
+  { id: 25, type: "animal", local: "Tipaklong", sci: "Oxya chinensis" },
+  { id: 26, type: "animal", local: "Tutubi", sci: "Orthetrum sabina" },
+  { id: 27, type: "animal", local: "Kuhol", sci: "Pomacea canaliculata" },
+  { id: 28, type: "animal", local: "Alimango", sci: "Scylla serrata" },
+  { id: 29, type: "animal", local: "Hipon", sci: "Penaeus monodon" },
+  { id: 30, type: "animal", local: "Pusit", sci: "Loligo vulgaris" },
+  { id: 31, type: "animal", local: "Hito", sci: "Clarias batrachus" },
+  { id: 32, type: "animal", local: "Dalag", sci: "Channa striata" },
+  { id: 33, type: "animal", local: "Bayawak", sci: "Varanus salvator" },
+  { id: 34, type: "animal", local: "Paniki", sci: "Pteropus vampyrus" },
+  { id: 35, type: "animal", local: "Unggoy", sci: "Macaca fascicularis" },
+  { id: 36, type: "animal", local: "Tarsier", sci: "Carlito syrichta" },
+  { id: 37, type: "animal", local: "Usa", sci: "Rusa marianna" },
+  { id: 38, type: "animal", local: "Baboy-damo", sci: "Sus philippensis" },
+  { id: 39, type: "animal", local: "Lawin", sci: "Accipiter gularis" },
+  { id: 40, type: "animal", local: "Pawikan", sci: "Chelonia mydas" },
+  { id: 41, type: "animal", local: "Lapu-lapu", sci: "Epinephelus coioides" },
+  { id: 42, type: "animal", local: "Tamban", sci: "Sardinella lemuru" },
+  { id: 43, type: "animal", local: "Pating", sci: "Carcharhinus leucas" },
+  { id: 44, type: "animal", local: "Talangka", sci: "Varuna litterata" },
+  { id: 45, type: "animal", local: "Palos", sci: "Anguilla marmorata" },
+  { id: 46, type: "animal", local: "Tagak", sci: "Ardea alba" },
+  { id: 47, type: "animal", local: "Tikling", sci: "Gallirallus philippensis" },
+  { id: 48, type: "animal", local: "Kabag", sci: "Pteropus hypomelanus" },
+  { id: 49, type: "animal", local: "Alupihan", sci: "Scolopendra subspinipes" },
+
+  // 49 Plants
+  { id: 50, type: "plant", local: "Palay", sci: "Oryza sativa" },
+  { id: 51, type: "plant", local: "Mais", sci: "Zea mays" },
+  { id: 52, type: "plant", local: "Saging", sci: "Musa paradisiaca" },
+  { id: 53, type: "plant", local: "Mangga", sci: "Mangifera indica" },
+  { id: 54, type: "plant", local: "Niyog", sci: "Cocos nucifera" },
+  { id: 55, type: "plant", local: "Papaya", sci: "Carica papaya" },
+  { id: 56, type: "plant", local: "Bayabas", sci: "Psidium guajava" },
+  { id: 57, type: "plant", local: "Kalamansi", sci: "Citrus microcarpa" },
+  { id: 58, type: "plant", local: "Guyabano", sci: "Annona muricata" },
+  { id: 59, type: "plant", local: "Atis", sci: "Annona squamosa" },
+  { id: 60, type: "plant", local: "Langka", sci: "Artocarpus heterophyllus" },
+  { id: 61, type: "plant", local: "Rambutan", sci: "Nephelium lappaceum" },
+  { id: 62, type: "plant", local: "Duhat", sci: "Syzygium cumini" },
+  { id: 63, type: "plant", local: "Sampalok", sci: "Tamarindus indica" },
+  { id: 64, type: "plant", local: "Kamatis", sci: "Solanum lycopersicum" },
+  { id: 65, type: "plant", local: "Talong", sci: "Solanum melongena" },
+  { id: 66, type: "plant", local: "Sili", sci: "Capsicum frutescens" },
+  { id: 67, type: "plant", local: "Sibuyas", sci: "Allium cepa" },
+  { id: 68, type: "plant", local: "Bawang", sci: "Allium sativum" },
+  { id: 69, type: "plant", local: "Luya", sci: "Zingiber officinale" },
+  { id: 70, type: "plant", local: "Ampalaya", sci: "Momordica charantia" },
+  { id: 71, type: "plant", local: "Okra", sci: "Abelmoschus esculentus" },
+  { id: 72, type: "plant", local: "Kangkong", sci: "Ipomoea aquatica" },
+  { id: 73, type: "plant", local: "Pechay", sci: "Brassica rapa" },
+  { id: 74, type: "plant", local: "Malunggay", sci: "Moringa oleifera" },
+  { id: 75, type: "plant", local: "Kamote", sci: "Ipomoea batatas" },
+  { id: 76, type: "plant", local: "Gabi", sci: "Colocasia esculenta" },
+  { id: 77, type: "plant", local: "Ube", sci: "Dioscorea alata" },
+  { id: 78, type: "plant", local: "Talahib", sci: "Saccharum spontaneum" },
+  { id: 79, type: "plant", local: "Kawayan", sci: "Bambusa vulgaris" },
+  { id: 80, type: "plant", local: "Narra", sci: "Pterocarpus indicus" },
+  { id: 81, type: "plant", local: "Mahogany", sci: "Swietenia macrophylla" },
+  { id: 82, type: "plant", local: "Banaba", sci: "Lagerstroemia speciosa" },
+  { id: 83, type: "plant", local: "Ylang-ylang", sci: "Cananga odorata" },
+  { id: 84, type: "plant", local: "Sampaguita", sci: "Jasminum sambac" },
+  { id: 85, type: "plant", local: "Gumamela", sci: "Hibiscus rosa-sinensis" },
+  { id: 86, type: "plant", local: "Rosal", sci: "Gardenia jasminoides" },
+  { id: 87, type: "plant", local: "Santan", sci: "Ixora coccinea" },
+  { id: 88, type: "plant", local: "Tsaang-gubat", sci: "Ehretia microphylla" },
+  { id: 89, type: "plant", local: "Akapulko", sci: "Senna alata" },
+  { id: 90, type: "plant", local: "Makabuhay", sci: "Tinospora crispa" },
+  { id: 91, type: "plant", local: "Lagundi", sci: "Vitex negundo" },
+  { id: 92, type: "plant", local: "Pandan", sci: "Pandanus amaryllifolius" },
+  { id: 93, type: "plant", local: "Balete", sci: "Ficus balete" },
+  { id: 94, type: "plant", local: "Anahaw", sci: "Saribus rotundifolius" },
+  { id: 95, type: "plant", local: "Ipil", sci: "Intsia bijuga" },
+  { id: 96, type: "plant", local: "Acacia", sci: "Samanea saman" },
+  { id: 97, type: "plant", local: "Alugbati", sci: "Basella alba" },
+  { id: 98, type: "plant", local: "Kalabasa", sci: "Cucurbita moschata" }
+];
+
+/* =====================================================================
+   PERSISTENCE (localStorage, fails silently in private mode)
+===================================================================== */
+const store = {
+  get(key, fallback) {
+    try {
+      const v = localStorage.getItem('biomaster:' + key);
+      return v === null ? fallback : JSON.parse(v);
+    } catch (e) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem('biomaster:' + key, JSON.stringify(value)); } catch (e) {}
+  }
+};
+
+/* =====================================================================
+   SYNTHESIZED AUDIO ENGINE (Web Audio API)
+===================================================================== */
+let audioCtx = null;
+let soundOn = store.get('sound', true);
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function tone(freq, start, dur, type = 'sine', vol = 0.1) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(vol, start);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(start);
+  osc.stop(start + dur);
+}
+
+function playSound(type) {
+  if (!soundOn) return;
+  try {
+    initAudio();
+    const now = audioCtx.currentTime;
+    if (type === 'flip') {
+      tone(400, now, 0.05, 'sine', 0.05);
+    } else if (type === 'correct') {
+      tone(523.25, now, 0.1);        // C5
+      tone(659.25, now + 0.08, 0.2); // E5
+    } else if (type === 'wrong') {
+      tone(180, now, 0.12, 'sawtooth', 0.08);
+      tone(130, now + 0.1, 0.18, 'sawtooth', 0.08);
+    } else if (type === 'win') {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, now + i * 0.1, 0.25));
+    }
+  } catch(e) {}
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  store.set('sound', soundOn);
+  updateSoundButton();
+}
+
+function updateSoundButton() {
+  document.getElementById('sound-btn').innerText = soundOn ? '🔊' : '🔇';
+}
+
+/* =====================================================================
+   GLOBAL STATE & NAVIGATION
+===================================================================== */
+let currentCategory = 'all';
+let currentMode = 'flashcard';
+
+// Every delayed callback is tracked so switching modes can cancel it
+let pendingTimeouts = [];
+function later(fn, ms) {
+  const id = setTimeout(() => {
+    pendingTimeouts = pendingTimeouts.filter(t => t !== id);
+    fn();
+  }, ms);
+  pendingTimeouts.push(id);
+}
+function cancelPending() {
+  pendingTimeouts.forEach(clearTimeout);
+  pendingTimeouts = [];
+  clearInterval(quizTimerInterval);
+}
+
+function getActivePool() {
+  if (currentCategory === 'all') return [...DATA];
+  return DATA.filter(item => item.type === currentCategory);
+}
+
+function setCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`filter-${cat}`).classList.add('active');
+  document.getElementById('pool-counter').innerText = `${getActivePool().length} items`;
+  startMode();
+}
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${mode}`).classList.add('active');
+
+  if (mode === 'quiz') resetQuizScore();
+  startMode();
+}
+
+function startMode() {
+  cancelPending();
+  if (currentMode === 'flashcard') initFlashcardMode();
+  if (currentMode === 'quiz') nextQuizQuestion();
+  if (currentMode === 'match') initMatchMode();
+  if (currentMode === 'spell') nextSpellItem();
+}
+
+function setTag(id, type) {
+  const tag = document.getElementById(id);
+  tag.innerText = type;
+  tag.className = `tag tag-${type}`;
+}
+
+function pickRandom(pool, excludeId) {
+  const candidates = pool.length > 1 ? pool.filter(i => i.id !== excludeId) : pool;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+/* =====================================================================
+   MODE 1: LEITNER FLASHCARDS
+===================================================================== */
+let leitnerQueue = [];
+let masteredSet = new Set(store.get('mastered', []));
+let currentCard = null;
+
+function initFlashcardMode() {
+  const pool = getActivePool().filter(item => !masteredSet.has(item.id));
+  leitnerQueue = shuffleArray(pool);
+  renderNextCard();
+}
+
+function isCardFlipped() {
+  return document.getElementById('main-flashcard').classList.contains('flipped');
+}
+
+function setGradeButtons(enabled) {
+  document.getElementById('btn-review').disabled = !enabled;
+  document.getElementById('btn-gotit').disabled = !enabled;
+}
+
+function toggleCardFlip() {
+  if (!currentCard) return;
+  const card = document.getElementById('main-flashcard');
+  card.classList.toggle('flipped');
+  setGradeButtons(isCardFlipped());
+  playSound('flip');
+}
+
+function renderNextCard() {
+  // Snap back to the front without animating, so the next answer isn't revealed mid-flip
+  const cardEl = document.getElementById('main-flashcard');
+  cardEl.classList.add('no-anim');
+  cardEl.classList.remove('flipped');
+  void cardEl.offsetWidth;
+  cardEl.classList.remove('no-anim');
+  setGradeButtons(false);
+
+  const pool = getActivePool();
+  const masteredInPool = pool.filter(item => masteredSet.has(item.id)).length;
+  document.getElementById('fc-queue-count').innerText = leitnerQueue.length;
+  document.getElementById('fc-mastered-count').innerText = `${masteredInPool} / ${pool.length}`;
+  document.getElementById('fc-progress').style.width = `${(masteredInPool / pool.length) * 100}%`;
+
+  const done = leitnerQueue.length === 0;
+  document.getElementById('fc-study').style.display = done ? 'none' : 'flex';
+  document.getElementById('fc-done').style.display = done ? 'flex' : 'none';
+
+  if (done) {
+    currentCard = null;
+    playSound('win');
+    return;
+  }
+
+  currentCard = leitnerQueue[0];
+  setTag('fc-tag', currentCard.type);
+  document.getElementById('fc-front').innerText = currentCard.local;
+  document.getElementById('fc-back').innerText = currentCard.sci;
+}
+
+function leitnerAnswer(gotIt) {
+  if (!currentCard || !isCardFlipped()) return;
+  const item = leitnerQueue.shift();
+
+  if (gotIt) {
+    playSound('correct');
+    masteredSet.add(item.id);
+    store.set('mastered', [...masteredSet]);
+  } else {
+    playSound('wrong');
+    // Leitner penalty: bring the card back again soon
+    leitnerQueue.splice(Math.min(3, leitnerQueue.length), 0, item);
+  }
+  renderNextCard();
+}
+
+// Swipe gestures on touch screens: drag the flipped card left (review) or right (got it)
+const SWIPE_THRESHOLD = 70;
+let swipeStartX = null;
+let swipeDx = 0;
+let suppressCardClick = false;
+
+function onCardClick() {
+  if (suppressCardClick) { suppressCardClick = false; return; }
+  toggleCardFlip();
+}
+
+function setCardDrag(dx) {
+  const card = document.getElementById('main-flashcard');
+  card.style.transform = dx ? `rotateY(180deg) translateX(${-dx}px) rotateZ(${-dx / 20}deg)` : '';
+}
+
+(function initSwipe() {
+  const wrapper = document.getElementById('fc-wrapper');
+  wrapper.addEventListener('touchstart', (e) => {
+    if (!currentCard || !isCardFlipped() || e.touches.length > 1) return;
+    swipeStartX = e.touches[0].clientX;
+    swipeDx = 0;
+    wrapper.classList.add('swiping');
+  }, { passive: true });
+
+  wrapper.addEventListener('touchmove', (e) => {
+    if (swipeStartX === null) return;
+    swipeDx = e.touches[0].clientX - swipeStartX;
+    setCardDrag(swipeDx);
+  }, { passive: true });
+
+  const endSwipe = () => {
+    if (swipeStartX === null) return;
+    wrapper.classList.remove('swiping');
+    setCardDrag(0);
+    if (Math.abs(swipeDx) > 10) suppressCardClick = true;
+    if (Math.abs(swipeDx) > SWIPE_THRESHOLD) leitnerAnswer(swipeDx > 0);
+    swipeStartX = null;
+    swipeDx = 0;
+    // The synthetic click may not fire after a drag, so don't swallow the next real tap
+    setTimeout(() => { suppressCardClick = false; }, 400);
+  };
+  wrapper.addEventListener('touchend', endSwipe);
+  wrapper.addEventListener('touchcancel', endSwipe);
+})();
+
+function resetDeck() {
+  getActivePool().forEach(item => masteredSet.delete(item.id));
+  store.set('mastered', [...masteredSet]);
+  initFlashcardMode();
+}
+
+/* =====================================================================
+   MODE 2: QUICK QUIZ (Timer Rush + Streak Multiplier)
+===================================================================== */
+let quizTimerInterval = null;
+let quizStreak = 0;
+let quizScore = 0;
+let quizBest = store.get('quizBest', 0);
+let quizCurrentItem = null;
+let quizAnswered = false;
+const QUIZ_SECONDS = 10;
+
+// Multiplier tiers: 1-2 = 1x, 3-5 = 1.5x, 6-9 = 2x, 10+ = 3x
+function getMultiplier(streak) {
+  if (streak >= 10) return 3;
+  if (streak >= 6) return 2;
+  if (streak >= 3) return 1.5;
+  return 1;
+}
+
+function resetQuizScore() {
+  quizStreak = 0;
+  quizScore = 0;
+  updateQuizHud();
+}
+
+function updateQuizHud() {
+  document.getElementById('quiz-streak').innerText = quizStreak;
+  document.getElementById('quiz-mult').innerText = `${getMultiplier(quizStreak)}x`;
+  document.getElementById('quiz-score').innerText = quizScore;
+  document.getElementById('quiz-best').innerText = quizBest;
+}
+
+function nextQuizQuestion() {
+  clearInterval(quizTimerInterval);
+  const pool = getActivePool();
+  if (pool.length < 4) return;
+
+  quizCurrentItem = pickRandom(pool, quizCurrentItem && quizCurrentItem.id);
+  quizAnswered = false;
+
+  // Update Display
+  setTag('quiz-tag', quizCurrentItem.type);
+  document.getElementById('quiz-target').innerText = quizCurrentItem.local;
+  const feedback = document.getElementById('quiz-feedback');
+  feedback.innerText = '';
+  feedback.className = 'feedback';
+
+  // Generate 4 distinct options (1 correct + 3 distractors)
+  const distractors = shuffleArray(pool.filter(i => i.id !== quizCurrentItem.id)).slice(0, 3);
+  const options = shuffleArray([quizCurrentItem, ...distractors]);
+
+  const container = document.getElementById('quiz-options-container');
+  container.innerHTML = '';
+  options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt-btn';
+    btn.dataset.id = opt.id;
+    btn.innerHTML = `<span class="opt-key">${idx + 1}</span>`;
+    btn.appendChild(document.createTextNode(opt.sci));
+    btn.onclick = () => handleQuizAnswer(opt.id, btn);
+    container.appendChild(btn);
+  });
+
+  // Start 10s Timer (based on real elapsed time, not tick count)
+  const timerBar = document.getElementById('quiz-timer');
+  timerBar.style.width = '100%';
+  timerBar.style.background = 'var(--primary)';
+  const startedAt = Date.now();
+
+  quizTimerInterval = setInterval(() => {
+    const timeLeft = QUIZ_SECONDS - (Date.now() - startedAt) / 1000;
+    timerBar.style.width = `${Math.max(0, (timeLeft / QUIZ_SECONDS) * 100)}%`;
+    if (timeLeft <= 3) timerBar.style.background = 'var(--danger)';
+    if (timeLeft <= 0) handleQuizAnswer(null, null); // Timeout counts as wrong
+  }, 100);
+}
+
+function handleQuizAnswer(selectedId, selectedBtn) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  clearInterval(quizTimerInterval);
+
+  const isCorrect = selectedId === quizCurrentItem.id;
+  const feedback = document.getElementById('quiz-feedback');
+
+  // Disable all option buttons and reveal the right one
+  document.querySelectorAll('.quiz-opt-btn').forEach(b => {
+    b.disabled = true;
+    if (Number(b.dataset.id) === quizCurrentItem.id) b.classList.add('correct');
+  });
+
+  if (isCorrect) {
+    playSound('correct');
+    quizStreak++;
+    const points = Math.round(100 * getMultiplier(quizStreak));
+    quizScore += points;
+    feedback.innerText = `✓ Correct! +${points}`;
+    feedback.className = 'feedback good';
+  } else {
+    playSound('wrong');
+    if (selectedBtn) selectedBtn.classList.add('wrong');
+    quizStreak = 0;
+    feedback.innerText = selectedBtn ? `✗ It's ${quizCurrentItem.sci}` : `⏱ Time's up! It's ${quizCurrentItem.sci}`;
+    feedback.className = 'feedback bad';
+  }
+
+  if (quizScore > quizBest) {
+    quizBest = quizScore;
+    store.set('quizBest', quizBest);
+  }
+  updateQuizHud();
+
+  // Give a bit more time to read the answer after a miss
+  later(nextQuizQuestion, isCorrect ? 1000 : 2000);
+}
+
+/* =====================================================================
+   MODE 3: PAIR & MATCH (4x4 Memory Tile Game)
+===================================================================== */
+const MATCH_PAIRS = 8;
+let firstSelectedCard = null;
+let matchPairsFound = 0;
+let matchMistakes = 0;
+let matchLock = false;
+
+function initMatchMode() {
+  cancelPending();
+  matchPairsFound = 0;
+  matchMistakes = 0;
+  firstSelectedCard = null;
+  matchLock = false;
+
+  document.getElementById('match-pairs-count').innerText = 0;
+  document.getElementById('match-mistakes').innerText = 0;
+  document.getElementById('match-feedback').innerText = '';
+
+  // Pick 8 random items (16 cards total)
+  const selectedItems = shuffleArray(getActivePool()).slice(0, MATCH_PAIRS);
+
+  const matchCards = [];
+  selectedItems.forEach(item => {
+    matchCards.push({ id: item.id, text: item.local, isSci: false });
+    matchCards.push({ id: item.id, text: item.sci, isSci: true });
+  });
+
+  const grid = document.getElementById('match-grid');
+  grid.innerHTML = '';
+  shuffleArray(matchCards).forEach(card => {
+    const el = document.createElement('button');
+    el.className = `match-card ${card.isSci ? 'scientific' : ''}`;
+    el.innerText = card.text;
+    el.dataset.id = card.id;
+    el.dataset.sci = card.isSci;
+    el.onclick = () => handleMatchClick(el);
+    grid.appendChild(el);
+  });
+}
+
+function handleMatchClick(el) {
+  if (matchLock || el.classList.contains('matched')) return;
+
+  // Clicking the selected card again deselects it
+  if (el === firstSelectedCard) {
+    el.classList.remove('selected');
+    firstSelectedCard = null;
+    return;
+  }
+
+  // Clicking another card of the same kind just moves the selection
+  if (firstSelectedCard && firstSelectedCard.dataset.sci === el.dataset.sci) {
+    firstSelectedCard.classList.remove('selected');
+    firstSelectedCard = null;
+  }
+
+  el.classList.add('selected');
+  playSound('flip');
+
+  if (!firstSelectedCard) {
+    firstSelectedCard = el;
+    return;
+  }
+
+  const first = firstSelectedCard;
+  const second = el;
+  firstSelectedCard = null;
+  matchLock = true;
+
+  if (first.dataset.id === second.dataset.id) {
+    later(() => {
+      playSound('correct');
+      [first, second].forEach(c => {
+        c.classList.remove('selected');
+        c.classList.add('matched');
+        c.disabled = true;
+      });
+      matchLock = false;
+
+      matchPairsFound++;
+      document.getElementById('match-pairs-count').innerText = matchPairsFound;
+      if (matchPairsFound === MATCH_PAIRS) {
+        playSound('win');
+        document.getElementById('match-feedback').innerText = matchMistakes === 0
+          ? '🏆 Perfect round, no mistakes!'
+          : `🎉 Round cleared with ${matchMistakes} mistake${matchMistakes === 1 ? '' : 's'}!`;
+      }
+    }, 300);
+  } else {
+    matchMistakes++;
+    document.getElementById('match-mistakes').innerText = matchMistakes;
+    playSound('wrong');
+    [first, second].forEach(c => c.classList.add('mismatch'));
+    later(() => {
+      [first, second].forEach(c => c.classList.remove('selected', 'mismatch'));
+      matchLock = false;
+    }, 700);
+  }
+}
+
+/* =====================================================================
+   MODE 4: SPELLING BEE (Anagram Letter Tiles)
+===================================================================== */
+let currentSpellItem = null;
+let targetLetters = [];  // full name, including spaces
+let targetChars = [];    // name without spaces (what the slots hold)
+let spelledTiles = [];   // tile buttons placed so far, in order
+let spellLocked = false;
+let spellSolved = 0;
+
+const sameChar = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+function nextSpellItem() {
+  cancelPending();
+  currentSpellItem = pickRandom(getActivePool(), currentSpellItem && currentSpellItem.id);
+
+  setTag('spell-tag', currentSpellItem.type);
+  document.getElementById('spell-target-name').innerText = currentSpellItem.local;
+  setSpellFeedback('', '');
+
+  targetLetters = currentSpellItem.sci.split('');
+  targetChars = targetLetters.filter(c => c !== ' ');
+  spelledTiles = [];
+  spellLocked = false;
+  renderSpellUI();
+}
+
+function setSpellFeedback(text, kind) {
+  const el = document.getElementById('spell-feedback');
+  el.innerText = text;
+  el.className = `feedback ${kind}`;
+}
+
+function renderSpellUI() {
+  // Render letter slots
+  const slotsContainer = document.getElementById('spell-slots');
+  slotsContainer.innerHTML = '';
+  currentSpellItem.sci.split(' ').forEach(word => {
+    const wordEl = document.createElement('div');
+    wordEl.className = 'spell-word';
+    word.split('').forEach(() => {
+      const slot = document.createElement('div');
+      slot.className = 'spell-slot';
+      wordEl.appendChild(slot);
+    });
+    slotsContainer.appendChild(wordEl);
+  });
+
+  // Render pool of scrambled tiles (only non-space characters)
+  const poolContainer = document.getElementById('spell-pool');
+  poolContainer.innerHTML = '';
+  shuffleArray(targetChars).forEach(char => {
+    const btn = document.createElement('button');
+    btn.className = 'tile-btn';
+    btn.innerText = char;
+    btn.dataset.char = char;
+    btn.onclick = () => addSpellLetter(btn);
+    poolContainer.appendChild(btn);
+  });
+}
+
+function getLetterSlots() {
+  return document.querySelectorAll('.spell-slot');
+}
+
+function updateSpellSlots() {
+  getLetterSlots().forEach((slot, i) => {
+    const tile = spelledTiles[i];
+    // Show the target's casing when the letter is right, so "b" and "B" tiles are interchangeable
+    slot.innerText = !tile ? '' : sameChar(tile.dataset.char, targetChars[i]) ? targetChars[i] : tile.dataset.char;
+    slot.classList.remove('ok', 'bad', 'revealed');
+  });
+}
+
+function addSpellLetter(btn) {
+  if (spellLocked || spelledTiles.length >= targetChars.length) return;
+
+  playSound('flip');
+  spelledTiles.push(btn);
+  btn.classList.add('used');
+
+  updateSpellSlots();
+  checkSpelling();
+}
+
+function removeLastLetter() {
+  const tile = spelledTiles.pop();
+  if (tile) tile.classList.remove('used');
+}
+
+function spellBackspace() {
+  if (spellLocked || spelledTiles.length === 0) return;
+  removeLastLetter();
+  updateSpellSlots();
+}
+
+function spellClear() {
+  if (spellLocked) return;
+  while (spelledTiles.length) removeLastLetter();
+  updateSpellSlots();
+}
+
+function firstWrongIndex() {
+  return spelledTiles.findIndex((tile, i) => !sameChar(tile.dataset.char, targetChars[i]));
+}
+
+function findUnusedTile(char) {
+  const tiles = [...document.querySelectorAll('.tile-btn:not(.used)')];
+  return tiles.find(b => b.dataset.char === char) || tiles.find(b => sameChar(b.dataset.char, char));
+}
+
+function spellHint() {
+  if (spellLocked) return;
+
+  // Drop any wrong letters first, then place the next correct one
+  const wrongAt = firstWrongIndex();
+  if (wrongAt !== -1) {
+    while (spelledTiles.length > wrongAt) removeLastLetter();
+    updateSpellSlots();
+  }
+
+  const neededChar = targetChars[spelledTiles.length];
+  if (neededChar === undefined) return;
+  const tile = findUnusedTile(neededChar);
+  if (tile) addSpellLetter(tile);
+}
+
+function spellReveal() {
+  if (spellLocked) return;
+  spellLocked = true;
+  getLetterSlots().forEach((slot, i) => {
+    slot.innerText = targetChars[i];
+    slot.classList.remove('ok', 'bad');
+    slot.classList.add('revealed');
+  });
+  document.querySelectorAll('.tile-btn').forEach(b => b.classList.add('used'));
+  setSpellFeedback(`Answer: ${currentSpellItem.sci}`, 'bad');
+  later(nextSpellItem, 2500);
+}
+
+function checkSpelling() {
+  if (spelledTiles.length < targetChars.length) return;
+
+  const wrongAt = firstWrongIndex();
+  const slots = getLetterSlots();
+
+  if (wrongAt === -1) {
+    playSound('correct');
+    spellLocked = true;
+    slots.forEach(s => s.classList.add('ok'));
+    spellSolved++;
+    document.getElementById('spell-solved').innerText = spellSolved;
+    setSpellFeedback('✓ Perfect!', 'good');
+    later(nextSpellItem, 1200);
+  } else {
+    // Show which letters are off, then rewind to the first mistake
+    playSound('wrong');
+    spellLocked = true;
+    slots.forEach((s, i) => s.classList.add(sameChar(spelledTiles[i].dataset.char, targetChars[i]) ? 'ok' : 'bad'));
+    setSpellFeedback('Not quite, fixing from the first wrong letter…', 'bad');
+    later(() => {
+      while (spelledTiles.length > wrongAt) removeLastLetter();
+      spellLocked = false;
+      updateSpellSlots();
+      setSpellFeedback('', '');
+    }, 1100);
+  }
+}
+
+/* =====================================================================
+   KEYBOARD SHORTCUTS
+===================================================================== */
+window.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const onButton = e.target.closest && e.target.closest('button');
+
+  if (currentMode === 'flashcard') {
+    if ((e.key === ' ' || e.key === 'Enter') && !onButton) {
+      e.preventDefault();
+      toggleCardFlip();
+    } else if (e.key === 'ArrowLeft') {
+      leitnerAnswer(false);
+    } else if (e.key === 'ArrowRight') {
+      leitnerAnswer(true);
+    }
+  } else if (currentMode === 'quiz') {
+    const idx = Number(e.key) - 1;
+    const btn = document.querySelectorAll('.quiz-opt-btn')[idx];
+    if (btn && !btn.disabled) btn.click();
+  } else if (currentMode === 'spell') {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      spellBackspace();
+    } else if (e.key.length === 1 && /[a-zA-Z-]/.test(e.key)) {
+      // Prefer the tile with the casing the next slot needs
+      const neededChar = targetChars[spelledTiles.length];
+      const tile = neededChar && sameChar(neededChar, e.key) ? findUnusedTile(neededChar) : findUnusedTile(e.key);
+      if (tile) addSpellLetter(tile);
+    }
+  }
+});
+
+/* =====================================================================
+   HELPER UTILITIES
+===================================================================== */
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Start app
+['all', 'animal', 'plant'].forEach(cat => {
+  const count = cat === 'all' ? DATA.length : DATA.filter(i => i.type === cat).length;
+  const btn = document.getElementById(`filter-${cat}`);
+  btn.innerText = `${btn.innerText} (${count})`;
+});
+document.getElementById('pool-counter').innerText = `${DATA.length} items`;
+updateSoundButton();
+updateQuizHud();
+initFlashcardMode();
+</script>
+</body>
+</html>
