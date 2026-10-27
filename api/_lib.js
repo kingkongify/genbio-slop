@@ -8,6 +8,12 @@ const redis = new Redis({
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+// Quiz keeps its original key names so existing entries survive.
+const BOARDS = {
+  quiz: { score: 'leaderboard:score', ts: 'leaderboard:ts' },
+  spell: { score: 'leaderboard:spell:score', ts: 'leaderboard:spell:ts' },
+};
+
 function normalize(username) {
   return String(username || '').trim().toLowerCase();
 }
@@ -16,4 +22,4 @@ function hashPin(usernameKey, pin) {
   return crypto.createHash('sha256').update(`${usernameKey}:${pin}:biomaster-pin-salt`).digest('hex');
 }
 
-module.exports = { redis, normalize, hashPin, WEEK_MS };
+module.exports = { redis, normalize, hashPin, WEEK_MS, BOARDS };

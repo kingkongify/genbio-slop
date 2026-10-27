@@ -84,6 +84,7 @@
   .icon-btn.secondary { right: 46px; }
 
   /* MODALS */
+  .modal-overlay.open { display: flex; }
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
   .modal-box { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; max-width: 360px; width: 100%; text-align: center; }
   .modal-box h2 { margin: 0 0 6px; color: var(--primary); }
@@ -94,15 +95,27 @@
   .modal-link-row { margin-top: 14px; }
 
   /* LEADERBOARD */
-  .leaderboard-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); margin-bottom: 6px; width: 100%; box-sizing: border-box; }
-  .leaderboard-row.me { background: var(--hover-bg); border: 1px solid var(--primary-light); }
+  .lb-header { text-align: center; margin-bottom: 14px; }
+  .lb-header h2 { margin: 0 0 6px; font-size: 1.4rem; line-height: 1.3; color: var(--text); }
+  .lb-header p { margin: 0; font-size: 0.82rem; line-height: 1.4; color: var(--text-muted); }
+  .leaderboard-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid transparent; background: var(--surface-2); margin-bottom: 6px; width: 100%; box-sizing: border-box; }
+  .leaderboard-row.me { background: var(--hover-bg); border-color: var(--primary-light); }
+  .lb-empty { color: var(--text-muted); text-align: center; margin: 16px 0; }
+
+  /* TIMED / PRACTICE + BOARD TOGGLES */
+  .seg-toggle { display: inline-flex; background: var(--nav-bg); border-radius: 999px; padding: 3px; gap: 2px; }
+  .seg-toggle button { border: none; background: transparent; padding: 5px 12px; border-radius: 999px; font-weight: 600; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; }
+  .seg-toggle button.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .practice-chip { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); }
+  body.practice .ranked-only { display: none; }
+  body:not(.practice) .practice-only { display: none; }
   .lb-rank { font-weight: 700; color: var(--text-muted); width: 32px; }
   .lb-name { flex: 1; font-weight: 600; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lb-score { font-weight: 700; color: var(--primary); }
   #leaderboard-list { width: 100%; max-width: 420px; margin-top: 8px; }
 
   /* Navigation Bar */
-  .nav-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--nav-bg); padding: 6px; border-radius: var(--radius); }
+  .nav-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; background: var(--nav-bg); padding: 6px; border-radius: var(--radius); }
   .tab-btn { padding: 10px 4px; border: none; background: transparent; font-weight: 600; font-size: 0.85rem; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .tab-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
 
@@ -307,7 +320,7 @@
     <button class="tab-btn" data-mode="quiz" onclick="switchMode('quiz')"><span class="tab-icon">⚡</span><span>Quiz</span></button>
     <button class="tab-btn" data-mode="match" onclick="switchMode('match')"><span class="tab-icon">🧩</span><span>Match</span></button>
     <button class="tab-btn" data-mode="spell" onclick="switchMode('spell')"><span class="tab-icon">✍️</span><span>Spelling</span></button>
-    <button class="tab-btn" data-mode="leaderboard" onclick="switchMode('leaderboard')"><span class="tab-icon">🏆</span><span>Leaderboard</span></button>
+    <button class="tab-btn" data-mode="leaderboard" onclick="switchMode('leaderboard')"><span class="tab-icon">🏆</span><span>Ranks</span></button>
   </nav>
 
   <!-- Filter & Stats -->
@@ -370,10 +383,15 @@
   <!-- MODE 2: QUICK QUIZ -->
   <div class="view-panel" id="panel-quiz">
     <div class="quiz-header">
-      <div class="streak-chip">🔥 Streak: <span id="quiz-streak">0</span> (<span id="quiz-mult">1x</span>)</div>
-      <div class="score-chip">Score: <span id="quiz-score">0</span><small>Best: <span id="quiz-best">0</span></small></div>
+      <div class="streak-chip ranked-only">🔥 Streak: <span id="quiz-streak">0</span> (<span id="quiz-mult">1x</span>)</div>
+      <div class="seg-toggle practice-toggle">
+        <button data-practice="false" onclick="setPractice(false)">⏱ Timed</button>
+        <button data-practice="true" onclick="setPractice(true)">🧘 Practice</button>
+      </div>
+      <div class="score-chip ranked-only">Score: <span id="quiz-score">0</span><small>Best: <span id="quiz-best">0</span></small></div>
+      <div class="practice-chip practice-only">No timer · not ranked</div>
     </div>
-    <div class="timer-container"><div class="timer-bar" id="quiz-timer"></div></div>
+    <div class="timer-container ranked-only"><div class="timer-bar" id="quiz-timer"></div></div>
 
     <div class="quiz-question-box">
       <span class="tag" id="quiz-tag">Animal</span>
@@ -403,6 +421,16 @@
 
   <!-- MODE 4: SPELLING BEE -->
   <div class="view-panel" id="panel-spell">
+    <div class="quiz-header">
+      <div class="streak-chip ranked-only">🔥 Streak: <span id="spell-streak">0</span> (<span id="spell-mult">1x</span>)</div>
+      <div class="seg-toggle practice-toggle">
+        <button data-practice="false" onclick="setPractice(false)">⏱ Timed</button>
+        <button data-practice="true" onclick="setPractice(true)">🧘 Practice</button>
+      </div>
+      <div class="score-chip ranked-only">Score: <span id="spell-score">0</span><small>Best: <span id="spell-best">0</span></small></div>
+      <div class="practice-chip practice-only">No timer · not ranked</div>
+    </div>
+    <div class="timer-container ranked-only"><div class="timer-bar" id="spell-timer"></div></div>
     <div class="spell-target-box">
       <span class="tag" id="spell-tag">Plant</span>
       <div class="quiz-question-sub">Spell the scientific name for:</div>
@@ -429,8 +457,14 @@
 
   <!-- MODE 5: LEADERBOARD -->
   <div class="view-panel" id="panel-leaderboard">
-    <h2 style="margin-top:0;">🏆 Weekly Quiz Leaderboard</h2>
-    <p style="color:var(--text-muted); font-size:0.85rem; text-align:center; margin-top:-8px;">Ranked best scores · an entry expires 7 days after that player's last game</p>
+    <div class="lb-header">
+      <h2>🏆 Weekly Leaderboard</h2>
+      <p>Timed ranked games only · an entry expires 7 days after that player's last game</p>
+    </div>
+    <div class="seg-toggle" id="board-toggle">
+      <button data-board="quiz" onclick="setBoard('quiz')">⚡ Quiz</button>
+      <button data-board="spell" onclick="setBoard('spell')">✍️ Spelling</button>
+    </div>
     <div id="leaderboard-list"></div>
     <button class="action-btn" onclick="loadLeaderboard()">🔄 Refresh</button>
   </div>
@@ -663,6 +697,7 @@ function cancelPending() {
   pendingTimeouts.forEach(clearTimeout);
   pendingTimeouts = [];
   clearInterval(quizTimerInterval);
+  clearInterval(spellTimerInterval);
 }
 
 function getActivePool() {
@@ -679,13 +714,36 @@ function setCategory(cat) {
 }
 
 function switchMode(mode) {
+  endCurrentRun();
   currentMode = mode;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`panel-${mode}`).classList.add('active');
 
   if (mode === 'quiz') resetQuizScore();
+  if (mode === 'spell') resetSpellScore();
   startMode();
+}
+
+/* Practice = no timer, no score, nothing sent to the leaderboard */
+let practiceMode = store.get('practice', false);
+
+function setPractice(on) {
+  if (on === practiceMode) return;
+  endCurrentRun();
+  practiceMode = on;
+  store.set('practice', on);
+  applyPracticeUI();
+  // Restart the run so a practice score can never carry into a timed one
+  if (currentMode === 'quiz') resetQuizScore();
+  if (currentMode === 'spell') resetSpellScore();
+  if (currentMode === 'quiz' || currentMode === 'spell') startMode();
+}
+
+function applyPracticeUI() {
+  document.body.classList.toggle('practice', practiceMode);
+  document.querySelectorAll('.practice-toggle button').forEach(b =>
+    b.classList.toggle('active', (b.dataset.practice === 'true') === practiceMode));
 }
 
 function startMode() {
@@ -900,6 +958,8 @@ function nextQuizQuestion() {
     container.appendChild(btn);
   });
 
+  if (practiceMode) return;
+
   // Start 10s Timer (based on real elapsed time, not tick count)
   const timerBar = document.getElementById('quiz-timer');
   timerBar.style.width = '100%';
@@ -928,7 +988,11 @@ function handleQuizAnswer(selectedId, selectedBtn) {
     if (Number(b.dataset.id) === quizCurrentItem.id) b.classList.add('correct');
   });
 
-  if (isCorrect) {
+  if (isCorrect && practiceMode) {
+    playSound('correct');
+    feedback.innerText = '✓ Correct!';
+    feedback.className = 'feedback good';
+  } else if (isCorrect) {
     playSound('correct');
     quizStreak++;
     const points = Math.round(100 * getMultiplier(quizStreak));
@@ -938,15 +1002,17 @@ function handleQuizAnswer(selectedId, selectedBtn) {
   } else {
     playSound('wrong');
     if (selectedBtn) selectedBtn.classList.add('wrong');
+    lastSubmit = submitRun('quiz', quizScore);
     quizStreak = 0;
-    feedback.innerText = selectedBtn ? `✗ It's ${quizCurrentItem.sci}` : `⏱ Time's up! It's ${quizCurrentItem.sci}`;
+    const lost = !practiceMode && quizScore > 0 ? ' · score reset' : '';
+    quizScore = 0;
+    feedback.innerText = (selectedBtn ? `✗ It's ${quizCurrentItem.sci}` : `⏱ Time's up! It's ${quizCurrentItem.sci}`) + lost;
     feedback.className = 'feedback bad';
   }
 
   if (quizScore > quizBest) {
     quizBest = quizScore;
     store.set('quizBest', quizBest);
-    submitScoreIfRanked(quizBest);
   }
   updateQuizHud();
 
@@ -1066,7 +1132,28 @@ let spelledTiles = [];   // tile buttons placed so far, in order
 let spellLocked = false;
 let spellSolved = 0;
 
+// Timed scoring: 5s + 1s per letter; points = (10/letter + 10/second left) x streak multiplier, halved if a hint was used
+let spellTimerInterval = null;
+let spellDeadline = 0;
+let spellHintUsed = false;
+let spellStreak = 0;
+let spellScore = 0;
+let spellBest = store.get('spellBest', 0);
+
 const sameChar = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+function resetSpellScore() {
+  spellStreak = 0;
+  spellScore = 0;
+  updateSpellHud();
+}
+
+function updateSpellHud() {
+  document.getElementById('spell-streak').innerText = spellStreak;
+  document.getElementById('spell-mult').innerText = `${getMultiplier(spellStreak)}x`;
+  document.getElementById('spell-score').innerText = spellScore;
+  document.getElementById('spell-best').innerText = spellBest;
+}
 
 function nextSpellItem() {
   cancelPending();
@@ -1080,7 +1167,24 @@ function nextSpellItem() {
   targetChars = targetLetters.filter(c => c !== ' ');
   spelledTiles = [];
   spellLocked = false;
+  spellHintUsed = false;
   renderSpellUI();
+  if (!practiceMode) startSpellTimer();
+}
+
+function startSpellTimer() {
+  const total = (5 + targetChars.length) * 1000;
+  spellDeadline = Date.now() + total;
+  const timerBar = document.getElementById('spell-timer');
+  timerBar.style.width = '100%';
+  timerBar.style.background = 'var(--primary)';
+
+  spellTimerInterval = setInterval(() => {
+    const left = spellDeadline - Date.now();
+    timerBar.style.width = `${Math.max(0, (left / total) * 100)}%`;
+    if (left <= 3000) timerBar.style.background = 'var(--danger)';
+    if (left <= 0) revealSpellAnswer(`⏱ Time's up! It's ${currentSpellItem.sci}`);
+  }, 100);
 }
 
 function setSpellFeedback(text, kind) {
@@ -1138,7 +1242,30 @@ function addSpellLetter(btn) {
   btn.classList.add('used');
 
   updateSpellSlots();
+  const i = spelledTiles.length - 1;
+  if (!practiceMode && !sameChar(btn.dataset.char, targetChars[i])) {
+    spellMistype(i);
+    return;
+  }
   checkSpelling();
+}
+
+// Timed mode: any wrong letter wipes the run score, then the letter is taken back
+function spellMistype(i) {
+  playSound('wrong');
+  spellLocked = true;
+  getLetterSlots()[i].classList.add('bad');
+  const lost = spellScore > 0;
+  lastSubmit = submitRun('spell', spellScore);
+  spellStreak = 0;
+  spellScore = 0;
+  updateSpellHud();
+  setSpellFeedback(lost ? '✗ Wrong letter · score reset' : '✗ Wrong letter', 'bad');
+  later(() => {
+    removeLastLetter();
+    spellLocked = false;
+    updateSpellSlots();
+  }, 600);
 }
 
 function removeLastLetter() {
@@ -1169,6 +1296,7 @@ function findUnusedTile(char) {
 
 function spellHint() {
   if (spellLocked) return;
+  spellHintUsed = true;
 
   // Drop any wrong letters first, then place the next correct one
   const wrongAt = firstWrongIndex();
@@ -1185,6 +1313,12 @@ function spellHint() {
 
 function spellReveal() {
   if (spellLocked) return;
+  revealSpellAnswer(`Answer: ${currentSpellItem.sci}`);
+}
+
+// Also used by the timer, which can fire mid-rewind, so it clears that pending rewind first
+function revealSpellAnswer(message) {
+  cancelPending();
   spellLocked = true;
   getLetterSlots().forEach((slot, i) => {
     slot.innerText = targetChars[i];
@@ -1192,7 +1326,12 @@ function spellReveal() {
     slot.classList.add('revealed');
   });
   document.querySelectorAll('.tile-btn').forEach(b => b.classList.add('used'));
-  setSpellFeedback(`Answer: ${currentSpellItem.sci}`, 'bad');
+  playSound('wrong');
+  lastSubmit = submitRun('spell', spellScore);
+  spellStreak = 0;
+  spellScore = 0;
+  updateSpellHud();
+  setSpellFeedback(message, 'bad');
   later(nextSpellItem, 2500);
 }
 
@@ -1203,12 +1342,28 @@ function checkSpelling() {
   const slots = getLetterSlots();
 
   if (wrongAt === -1) {
+    clearInterval(spellTimerInterval);
     playSound('correct');
     spellLocked = true;
     slots.forEach(s => s.classList.add('ok'));
     spellSolved++;
     document.getElementById('spell-solved').innerText = spellSolved;
-    setSpellFeedback('✓ Perfect!', 'good');
+
+    if (practiceMode) {
+      setSpellFeedback('✓ Perfect!', 'good');
+    } else {
+      spellStreak++;
+      const secondsLeft = Math.max(0, Math.ceil((spellDeadline - Date.now()) / 1000));
+      const base = targetChars.length * 10 + secondsLeft * 10;
+      const points = Math.round(base * getMultiplier(spellStreak) * (spellHintUsed ? 0.5 : 1));
+      spellScore += points;
+      if (spellScore > spellBest) {
+        spellBest = spellScore;
+        store.set('spellBest', spellBest);
+      }
+      updateSpellHud();
+      setSpellFeedback(`✓ Perfect! +${points}${spellHintUsed ? ' (hint: half points)' : ''}`, 'good');
+    }
     later(nextSpellItem, 1200);
   } else {
     // Show which letters are off, then rewind to the first mistake
@@ -1230,7 +1385,8 @@ function checkSpelling() {
 ===================================================================== */
 window.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  const onButton = e.target.closest && e.target.closest('button');
+  if (document.querySelector('.modal-overlay.open') || e.target.closest('input, textarea')) return;
+  const onButton = e.target.closest('button');
 
   if (currentMode === 'flashcard') {
     if ((e.key === ' ' || e.key === 'Enter') && !onButton) {
@@ -1276,8 +1432,8 @@ function shuffleArray(arr) {
 let account = store.get('account', null);   // { username, pin }
 let playMode = store.get('playMode', null); // 'ranked' | 'guest'
 
-function showModal(id) { document.getElementById(id).style.display = 'flex'; }
-function hideModal(id) { document.getElementById(id).style.display = 'none'; }
+function showModal(id) { document.getElementById(id).classList.add('open'); }
+function hideModal(id) { document.getElementById(id).classList.remove('open'); }
 
 function openAccountModal() {
   document.getElementById('choice-logout-row').style.display = (playMode === 'ranked') ? 'block' : 'none';
@@ -1298,6 +1454,7 @@ function chooseRanked() {
 }
 
 function logoutAccount() {
+  endCurrentRun(true);
   account = null;
   playMode = null;
   store.set('account', null);
@@ -1330,7 +1487,8 @@ async function submitRegister(event) {
     store.set('playMode', playMode);
     hideModal('modal-register');
     updateAccountIndicator();
-    if (quizBest > 0) submitScoreIfRanked(quizBest);
+    if (currentMode === 'quiz') { resetQuizScore(); startMode(); }
+    if (currentMode === 'spell') { resetSpellScore(); startMode(); }
   } catch (e) {
     errBox.innerText = "Couldn't reach the server — check your connection.";
   }
@@ -1350,29 +1508,64 @@ function updateAccountIndicator() {
   }
 }
 
-async function submitScoreIfRanked(score) {
-  if (playMode !== 'ranked' || !account) return;
-  try {
-    await fetch('/api/score', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: account.username, pin: account.pin, score })
-    });
-  } catch (e) {}
+// To save database requests, a run is only sent when it ends AND beats this account's best
+let lastSubmit = Promise.resolve();
+
+// Bump after wiping the database so every device forgets the bests it remembered
+const SEASON = 2;
+const BEST_TTL_MS = 7 * 24 * 60 * 60 * 1000; // matches the server's 7-day expiry
+
+function submitRun(mode, runScore, keepalive = false) {
+  if (playMode !== 'ranked' || !account || practiceMode || runScore <= 0) return Promise.resolve();
+  const bestKey = `rankedBest:${SEASON}:${mode}:${account.username.toLowerCase()}`;
+  const saved = store.get(bestKey, null);
+  const prevBest = saved && Date.now() - saved.at < BEST_TTL_MS ? saved.score : 0;
+  if (runScore <= prevBest) return Promise.resolve();
+  store.set(bestKey, { score: runScore, at: Date.now() }); // set first so a repeat call for the same run is a no-op
+  return fetch('/api/score', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: account.username, pin: account.pin, score: runScore, mode }),
+    keepalive
+  }).then(r => { if (!r.ok) store.set(bestKey, saved); })
+    .catch(() => store.set(bestKey, saved));
 }
+
+// Leaving a run without a mistake (tab switch, practice toggle, closing the page) still counts
+function endCurrentRun(keepalive = false) {
+  if (currentMode === 'quiz') lastSubmit = submitRun('quiz', quizScore, keepalive);
+  if (currentMode === 'spell') lastSubmit = submitRun('spell', spellScore, keepalive);
+  return lastSubmit;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') endCurrentRun(true);
+});
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+let currentBoard = store.get('board', 'quiz');
+
+function setBoard(board) {
+  currentBoard = board;
+  store.set('board', board);
+  loadLeaderboard();
+}
+
 async function loadLeaderboard() {
+  const board = currentBoard;
+  document.querySelectorAll('#board-toggle button').forEach(b => b.classList.toggle('active', b.dataset.board === board));
   const list = document.getElementById('leaderboard-list');
-  list.innerHTML = '<p style="color:var(--text-muted);">Loading…</p>';
+  list.innerHTML = '<p class="lb-empty">Loading…</p>';
   try {
-    const res = await fetch('/api/leaderboard');
+    await lastSubmit;
+    const res = await fetch(`/api/leaderboard?mode=${board}`);
     const data = await res.json();
+    if (board !== currentBoard) return; // user switched boards while this was loading
     if (!data.ok || !data.entries || !data.entries.length) {
-      list.innerHTML = '<p style="color:var(--text-muted);">No ranked scores yet this week — be the first!</p>';
+      list.innerHTML = '<p class="lb-empty">No ranked scores yet this week — be the first!</p>';
       return;
     }
     const mine = account ? account.username.toLowerCase() : null;
@@ -1384,7 +1577,7 @@ async function loadLeaderboard() {
       </div>
     `).join('');
   } catch (e) {
-    list.innerHTML = '<p style="color:var(--text-muted);">Couldn\'t load the leaderboard — try again.</p>';
+    if (board === currentBoard) list.innerHTML = '<p class="lb-empty">Couldn\'t load the leaderboard — try again.</p>';
   }
 }
 
@@ -1397,6 +1590,8 @@ async function loadLeaderboard() {
 document.getElementById('pool-counter').innerText = `${DATA.length} items`;
 updateSoundButton();
 updateQuizHud();
+updateSpellHud();
+applyPracticeUI();
 updateAccountIndicator();
 if (!playMode) showModal('modal-choice');
 initFlashcardMode();
