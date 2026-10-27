@@ -81,6 +81,25 @@
   header h1 { color: var(--primary); font-size: 1.8rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
   header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
   .icon-btn { position: absolute; top: 8px; right: 0; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 1.1rem; }
+  .icon-btn.secondary { right: 46px; }
+
+  /* MODALS */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+  .modal-box { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; max-width: 360px; width: 100%; text-align: center; }
+  .modal-box h2 { margin: 0 0 6px; color: var(--primary); }
+  .modal-box p { color: var(--text-muted); font-size: 0.85rem; margin: 0 0 16px; }
+  .modal-box input { width: 100%; padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); font-size: 1rem; box-sizing: border-box; }
+  .modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .modal-error { color: var(--danger); font-size: 0.8rem; min-height: 1.2em; margin: -4px 0 8px; }
+  .modal-link-row { margin-top: 14px; }
+
+  /* LEADERBOARD */
+  .leaderboard-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); margin-bottom: 6px; width: 100%; box-sizing: border-box; }
+  .leaderboard-row.me { background: var(--hover-bg); border: 1px solid var(--primary-light); }
+  .lb-rank { font-weight: 700; color: var(--text-muted); width: 32px; }
+  .lb-name { flex: 1; font-weight: 600; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-score { font-weight: 700; color: var(--primary); }
+  #leaderboard-list { width: 100%; max-width: 420px; margin-top: 8px; }
 
   /* Navigation Bar */
   .nav-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--nav-bg); padding: 6px; border-radius: var(--radius); }
@@ -278,6 +297,7 @@
   <header>
     <h1>🌿 BioMaster - CURIE </h1>
     <p>Memorize Philippine Flora & Fauna Scientific Names</p>
+    <button class="icon-btn secondary" id="account-btn" onclick="openAccountModal()" aria-label="Account">👤</button>
     <button class="icon-btn" id="sound-btn" onclick="toggleSound()" aria-label="Toggle sound">🔊</button>
   </header>
 
@@ -287,6 +307,7 @@
     <button class="tab-btn" data-mode="quiz" onclick="switchMode('quiz')"><span class="tab-icon">⚡</span><span>Quiz</span></button>
     <button class="tab-btn" data-mode="match" onclick="switchMode('match')"><span class="tab-icon">🧩</span><span>Match</span></button>
     <button class="tab-btn" data-mode="spell" onclick="switchMode('spell')"><span class="tab-icon">✍️</span><span>Spelling</span></button>
+    <button class="tab-btn" data-mode="leaderboard" onclick="switchMode('leaderboard')"><span class="tab-icon">🏆</span><span>Leaderboard</span></button>
   </nav>
 
   <!-- Filter & Stats -->
@@ -404,6 +425,46 @@
     </div>
     <div class="feedback" id="spell-feedback"></div>
     <div class="kbd-hint key-only">Type on your keyboard · <kbd>Backspace</kbd> to undo</div>
+  </div>
+
+  <!-- MODE 5: LEADERBOARD -->
+  <div class="view-panel" id="panel-leaderboard">
+    <h2 style="margin-top:0;">🏆 Weekly Quiz Leaderboard</h2>
+    <p style="color:var(--text-muted); font-size:0.85rem; text-align:center; margin-top:-8px;">Ranked best scores · an entry expires 7 days after that player's last game</p>
+    <div id="leaderboard-list"></div>
+    <button class="action-btn" onclick="loadLeaderboard()">🔄 Refresh</button>
+  </div>
+</div>
+
+<!-- Ranked vs Guest choice -->
+<div class="modal-overlay" id="modal-choice">
+  <div class="modal-box">
+    <h2>Play BioMaster</h2>
+    <p>Play ranked to put your best score on the weekly leaderboard, or jump in as a guest.</p>
+    <div class="modal-actions">
+      <button class="primary-btn" style="margin-top:0;" onclick="chooseRanked()">🏅 Play Ranked</button>
+      <button class="action-btn" onclick="chooseGuest()">👤 Play as Guest</button>
+    </div>
+    <div class="modal-link-row" id="choice-logout-row" style="display:none;">
+      <button class="link-btn" onclick="logoutAccount()">Log out of this account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Register / login (name + PIN) -->
+<div class="modal-overlay" id="modal-register">
+  <div class="modal-box">
+    <h2>Ranked Play</h2>
+    <p>Pick one username and a 4-digit PIN. Remember them — the PIN is how the leaderboard knows it's really you.</p>
+    <form onsubmit="submitRegister(event)">
+      <input type="text" id="reg-username" placeholder="Username" maxlength="20" autocomplete="off" required>
+      <input type="password" id="reg-pin" placeholder="4-digit PIN" inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="off" required>
+      <div class="modal-error" id="reg-error"></div>
+      <div class="modal-actions">
+        <button type="submit" class="primary-btn" style="margin-top:0;">Continue</button>
+        <button type="button" class="link-btn" onclick="hideModal('modal-register'); showModal('modal-choice');">← Back</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -631,6 +692,7 @@ function startMode() {
   cancelPending();
   if (currentMode === 'flashcard') initFlashcardMode();
   if (currentMode === 'quiz') nextQuizQuestion();
+  if (currentMode === 'leaderboard') { loadLeaderboard(); return; }
   if (currentMode === 'match') initMatchMode();
   if (currentMode === 'spell') nextSpellItem();
 }
@@ -884,6 +946,7 @@ function handleQuizAnswer(selectedId, selectedBtn) {
   if (quizScore > quizBest) {
     quizBest = quizScore;
     store.set('quizBest', quizBest);
+    submitScoreIfRanked(quizBest);
   }
   updateQuizHud();
 
@@ -1207,6 +1270,124 @@ function shuffleArray(arr) {
   return a;
 }
 
+/* =====================================================================
+   RANKED ACCOUNT + LEADERBOARD
+===================================================================== */
+let account = store.get('account', null);   // { username, pin }
+let playMode = store.get('playMode', null); // 'ranked' | 'guest'
+
+function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+function hideModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function openAccountModal() {
+  document.getElementById('choice-logout-row').style.display = (playMode === 'ranked') ? 'block' : 'none';
+  showModal('modal-choice');
+}
+
+function chooseGuest() {
+  playMode = 'guest';
+  store.set('playMode', playMode);
+  hideModal('modal-choice');
+  updateAccountIndicator();
+}
+
+function chooseRanked() {
+  hideModal('modal-choice');
+  document.getElementById('reg-error').innerText = '';
+  showModal('modal-register');
+}
+
+function logoutAccount() {
+  account = null;
+  playMode = null;
+  store.set('account', null);
+  store.set('playMode', null);
+  hideModal('modal-choice');
+  updateAccountIndicator();
+}
+
+async function submitRegister(event) {
+  event.preventDefault();
+  const username = document.getElementById('reg-username').value.trim();
+  const pin = document.getElementById('reg-pin').value.trim();
+  const errBox = document.getElementById('reg-error');
+  errBox.innerText = '';
+
+  if (!/^\d{4}$/.test(pin)) { errBox.innerText = 'PIN must be exactly 4 digits.'; return; }
+
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, pin })
+    });
+    const data = await res.json();
+    if (!data.ok) { errBox.innerText = data.error || 'Something went wrong.'; return; }
+
+    account = { username: data.username, pin };
+    playMode = 'ranked';
+    store.set('account', account);
+    store.set('playMode', playMode);
+    hideModal('modal-register');
+    updateAccountIndicator();
+    if (quizBest > 0) submitScoreIfRanked(quizBest);
+  } catch (e) {
+    errBox.innerText = "Couldn't reach the server — check your connection.";
+  }
+}
+
+function updateAccountIndicator() {
+  const btn = document.getElementById('account-btn');
+  if (playMode === 'ranked' && account) {
+    btn.innerText = '🏅';
+    btn.title = `Playing ranked as ${account.username} — tap to switch`;
+  } else if (playMode === 'guest') {
+    btn.innerText = '👤';
+    btn.title = 'Playing as Guest — tap to join ranked play';
+  } else {
+    btn.innerText = '👤';
+    btn.title = 'Choose Ranked or Guest';
+  }
+}
+
+async function submitScoreIfRanked(score) {
+  if (playMode !== 'ranked' || !account) return;
+  try {
+    await fetch('/api/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: account.username, pin: account.pin, score })
+    });
+  } catch (e) {}
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function loadLeaderboard() {
+  const list = document.getElementById('leaderboard-list');
+  list.innerHTML = '<p style="color:var(--text-muted);">Loading…</p>';
+  try {
+    const res = await fetch('/api/leaderboard');
+    const data = await res.json();
+    if (!data.ok || !data.entries || !data.entries.length) {
+      list.innerHTML = '<p style="color:var(--text-muted);">No ranked scores yet this week — be the first!</p>';
+      return;
+    }
+    const mine = account ? account.username.toLowerCase() : null;
+    list.innerHTML = data.entries.map(e => `
+      <div class="leaderboard-row ${mine && e.name.toLowerCase() === mine ? 'me' : ''}">
+        <span class="lb-rank">#${e.rank}</span>
+        <span class="lb-name">${escapeHtml(e.name)}</span>
+        <span class="lb-score">${e.score}</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<p style="color:var(--text-muted);">Couldn\'t load the leaderboard — try again.</p>';
+  }
+}
+
 // Start app
 ['all', 'animal', 'plant'].forEach(cat => {
   const count = cat === 'all' ? DATA.length : DATA.filter(i => i.type === cat).length;
@@ -1216,6 +1397,8 @@ function shuffleArray(arr) {
 document.getElementById('pool-counter').innerText = `${DATA.length} items`;
 updateSoundButton();
 updateQuizHud();
+updateAccountIndicator();
+if (!playMode) showModal('modal-choice');
 initFlashcardMode();
 </script>
 </body>
