@@ -299,8 +299,46 @@
     .tile-btn { width: 38px; height: 44px; }
   }
 
+  /* QUIZ DIFFICULTY TIERS */
+  .tier-chip { --tier-color: #43a047; align-self: flex-start; font-size: 0.75rem; font-weight: 700; color: var(--tier-color); border: 1px solid var(--tier-color); border-radius: 999px; padding: 2px 10px; margin-bottom: 6px; }
+  .quiz-options.many { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .quiz-options.many .quiz-opt-btn { font-size: 0.9rem; padding-top: 10px; padding-bottom: 10px; }
+  .tier-banner { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%) scale(0.6); opacity: 0; pointer-events: none; z-index: 5; text-align: center; padding: 14px 26px; border-radius: 14px; background: var(--surface); border: 3px solid var(--tier-color, var(--primary)); box-shadow: 0 0 40px var(--tier-color, var(--primary)); }
+  .tier-banner .tb-title { font-size: 1.8rem; font-weight: 900; letter-spacing: 2px; color: var(--tier-color, var(--primary)); }
+  .tier-banner .tb-sub { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-top: 4px; white-space: nowrap; }
+  .tier-banner.tier-show { animation: tier-pop 1.9s ease-out forwards; }
+  @keyframes tier-pop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+    15% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+    25% { transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  }
+  .view-panel.tier-glow { animation: tier-glow 1.9s ease-out; }
+  @keyframes tier-glow {
+    0%, 100% { box-shadow: var(--shadow); }
+    20% { box-shadow: 0 0 0 3px var(--tier-color), 0 0 48px var(--tier-color); }
+  }
+  .tier-burst { position: absolute; left: 50%; top: 40%; pointer-events: none; z-index: 4; }
+  .tier-burst span { position: absolute; font-size: 1.3rem; transform: translate(-50%, -50%); animation: tier-fly 1.1s ease-out forwards; }
+  @keyframes tier-fly {
+    to { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.4); opacity: 0; }
+  }
+  .view-panel.shake { animation: shake 0.45s; }
+  @keyframes shake {
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+  @media (max-width: 560px) {
+    .quiz-options.many .quiz-opt-btn { font-size: 0.8rem; padding: 8px 6px; min-height: 48px; overflow-wrap: anywhere; }
+    .quiz-options.many .opt-key { display: none; }
+    .tier-banner .tb-title { font-size: 1.4rem; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: 0.01ms !important; }
+    .view-panel.shake, .view-panel.tier-glow { animation: none !important; }
+    .tier-burst { display: none; }
   }
 </style>
 </head>
@@ -391,7 +429,9 @@
       <div class="score-chip ranked-only">Score: <span id="quiz-score">0</span><small>Best: <span id="quiz-best">0</span></small></div>
       <div class="practice-chip practice-only">No timer · not ranked</div>
     </div>
+    <div class="tier-chip ranked-only" id="quiz-tier"></div>
     <div class="timer-container ranked-only"><div class="timer-bar" id="quiz-timer"></div></div>
+    <div class="tier-banner" id="tier-banner" aria-live="polite"></div>
 
     <div class="quiz-question-box">
       <span class="tag" id="quiz-tag">Animal</span>
@@ -403,7 +443,7 @@
       <!-- 4 Options injected via JS -->
     </div>
     <div class="feedback" id="quiz-feedback"></div>
-    <div class="kbd-hint key-only">Press <kbd>1</kbd>–<kbd>4</kbd> to answer</div>
+    <div class="kbd-hint key-only">Press <kbd>1</kbd>–<kbd id="quiz-key-max">4</kbd> to answer</div>
   </div>
 
   <!-- MODE 3: PAIR & MATCH -->
@@ -662,6 +702,8 @@ function playSound(type) {
     } else if (type === 'wrong') {
       tone(180, now, 0.12, 'sawtooth', 0.08);
       tone(130, now + 0.1, 0.18, 'sawtooth', 0.08);
+    } else if (type === 'tierup') {
+      [392, 523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => tone(f, now + i * 0.07, 0.3, 'triangle', 0.09));
     } else if (type === 'win') {
       [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, now + i * 0.1, 0.25));
     }
@@ -904,7 +946,85 @@ let quizScore = 0;
 let quizBest = store.get('quizBest', 0);
 let quizCurrentItem = null;
 let quizAnswered = false;
-const QUIZ_SECONDS = 10;
+let quizQuestionTier = 0;
+
+// Difficulty climbs with the streak. pick: how wrong choices are chosen.
+const QUIZ_TIERS = [
+  { at: 0,  name: 'Warm-up', secs: 10,  options: 4, pick: 'random',   bonus: 1,    color: '#43a047' },
+  { at: 10, name: 'Tier 1',  secs: 9,   options: 4, pick: 'category', bonus: 1.1,  color: '#1e88e5' },
+  { at: 25, name: 'Tier 2',  secs: 7.5, options: 6, pick: 'category', bonus: 1.25, color: '#8e24aa' },
+  { at: 50, name: 'Tier 3',  secs: 6,   options: 6, pick: 'similar',  bonus: 1.5,  color: '#f4511e' },
+  { at: 75, name: 'Tier 4',  secs: 5,   options: 8, pick: 'similar',  bonus: 2,    color: '#ffb300' },
+];
+
+function quizTierIndex(streak) {
+  if (practiceMode) return 0;
+  let idx = 0;
+  QUIZ_TIERS.forEach((t, i) => { if (streak >= t.at) idx = i; });
+  return idx;
+}
+
+const genusOf = item => item.sci.split(' ')[0].toLowerCase();
+
+function pickDistractors(pool, target, count, pick) {
+  let candidates = pool.filter(i => i.id !== target.id && i.sci !== target.sci);
+  if (pick !== 'random') {
+    const sameType = candidates.filter(i => i.type === target.type);
+    if (sameType.length >= count) candidates = sameType;
+  }
+  if (pick !== 'similar') return shuffleArray(candidates).slice(0, count);
+  // Same genus first, then same first letter; the stable sort keeps the shuffle within each group
+  const g = genusOf(target);
+  const likeness = i => genusOf(i) === g ? 2 : genusOf(i)[0] === g[0] ? 1 : 0;
+  return shuffleArray(candidates).sort((a, b) => likeness(b) - likeness(a)).slice(0, count);
+}
+
+function updateTierChip() {
+  const tier = QUIZ_TIERS[quizTierIndex(quizStreak)];
+  const chip = document.getElementById('quiz-tier');
+  chip.innerText = `${tier.name} · ${tier.secs}s · ${tier.options} choices${tier.bonus > 1 ? ` · ${tier.bonus}x` : ''}`;
+  chip.style.setProperty('--tier-color', tier.color);
+}
+
+// Restart a CSS animation, and drop the class afterwards so re-showing a hidden panel doesn't replay it
+function playOnce(el, cls) {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  const done = e => {
+    if (e.target !== el) return;
+    el.classList.remove(cls);
+    el.removeEventListener('animationend', done);
+  };
+  el.addEventListener('animationend', done);
+}
+
+function showTierUp(idx) {
+  const tier = QUIZ_TIERS[idx];
+  const panel = document.getElementById('panel-quiz');
+  panel.style.setProperty('--tier-color', tier.color);
+  playSound('tierup');
+
+  const banner = document.getElementById('tier-banner');
+  banner.innerHTML = `<div class="tb-title">⚡ ${tier.name.toUpperCase()}</div>
+    <div class="tb-sub">${tier.secs}s · ${tier.options} choices · ${tier.bonus}x points</div>`;
+  playOnce(banner, 'tier-show');
+  playOnce(panel, 'tier-glow');
+
+  const burst = document.createElement('div');
+  burst.className = 'tier-burst';
+  for (let i = 0; i < 16; i++) {
+    const s = document.createElement('span');
+    const angle = (Math.PI * 2 * i) / 16;
+    const dist = 90 + Math.random() * 70;
+    s.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    s.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    s.innerText = ['✨', '⭐', '🔥'][i % 3];
+    burst.appendChild(s);
+  }
+  panel.appendChild(burst);
+  setTimeout(() => burst.remove(), 1200);
+}
 
 // Multiplier tiers: 1-2 = 1x, 3-5 = 1.5x, 6-9 = 2x, 10+ = 3x
 function getMultiplier(streak) {
@@ -925,6 +1045,7 @@ function updateQuizHud() {
   document.getElementById('quiz-mult').innerText = `${getMultiplier(quizStreak)}x`;
   document.getElementById('quiz-score').innerText = quizScore;
   document.getElementById('quiz-best').innerText = quizBest;
+  updateTierChip();
 }
 
 function nextQuizQuestion() {
@@ -942,12 +1063,15 @@ function nextQuizQuestion() {
   feedback.innerText = '';
   feedback.className = 'feedback';
 
-  // Generate 4 distinct options (1 correct + 3 distractors)
-  const distractors = shuffleArray(pool.filter(i => i.id !== quizCurrentItem.id)).slice(0, 3);
+  quizQuestionTier = quizTierIndex(quizStreak);
+  const tier = QUIZ_TIERS[quizQuestionTier];
+  const distractors = pickDistractors(pool, quizCurrentItem, tier.options - 1, tier.pick);
   const options = shuffleArray([quizCurrentItem, ...distractors]);
 
   const container = document.getElementById('quiz-options-container');
   container.innerHTML = '';
+  container.classList.toggle('many', options.length > 4);
+  document.getElementById('quiz-key-max').innerText = options.length;
   options.forEach((opt, idx) => {
     const btn = document.createElement('button');
     btn.className = 'quiz-opt-btn';
@@ -960,16 +1084,16 @@ function nextQuizQuestion() {
 
   if (practiceMode) return;
 
-  // Start 10s Timer (based on real elapsed time, not tick count)
+  // Timer based on real elapsed time, not tick count
   const timerBar = document.getElementById('quiz-timer');
   timerBar.style.width = '100%';
-  timerBar.style.background = 'var(--primary)';
+  timerBar.style.background = tier.color;
   const startedAt = Date.now();
 
   quizTimerInterval = setInterval(() => {
-    const timeLeft = QUIZ_SECONDS - (Date.now() - startedAt) / 1000;
-    timerBar.style.width = `${Math.max(0, (timeLeft / QUIZ_SECONDS) * 100)}%`;
-    if (timeLeft <= 3) timerBar.style.background = 'var(--danger)';
+    const timeLeft = tier.secs - (Date.now() - startedAt) / 1000;
+    timerBar.style.width = `${Math.max(0, (timeLeft / tier.secs) * 100)}%`;
+    if (timeLeft <= 2) timerBar.style.background = 'var(--danger)';
     if (timeLeft <= 0) handleQuizAnswer(null, null); // Timeout counts as wrong
   }, 100);
 }
@@ -995,13 +1119,14 @@ function handleQuizAnswer(selectedId, selectedBtn) {
   } else if (isCorrect) {
     playSound('correct');
     quizStreak++;
-    const points = Math.round(100 * getMultiplier(quizStreak));
+    const points = Math.round(100 * getMultiplier(quizStreak) * QUIZ_TIERS[quizQuestionTier].bonus);
     quizScore += points;
     feedback.innerText = `✓ Correct! +${points}`;
     feedback.className = 'feedback good';
   } else {
     playSound('wrong');
     if (selectedBtn) selectedBtn.classList.add('wrong');
+    if (quizQuestionTier > 0) playOnce(document.getElementById('panel-quiz'), 'shake');
     lastSubmit = submitRun('quiz', quizScore);
     quizStreak = 0;
     const lost = !practiceMode && quizScore > 0 ? ' · score reset' : '';
@@ -1016,8 +1141,11 @@ function handleQuizAnswer(selectedId, selectedBtn) {
   }
   updateQuizHud();
 
-  // Give a bit more time to read the answer after a miss
-  later(nextQuizQuestion, isCorrect ? 1000 : 2000);
+  const tierUp = isCorrect && quizTierIndex(quizStreak) > quizQuestionTier;
+  if (tierUp) showTierUp(quizTierIndex(quizStreak));
+
+  // Extra time to read the answer after a miss, or to enjoy a tier-up
+  later(nextQuizQuestion, tierUp ? 2000 : isCorrect ? 1000 : 2000);
 }
 
 /* =====================================================================
