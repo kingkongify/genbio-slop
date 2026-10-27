@@ -489,7 +489,7 @@
       <button class="action-btn" onclick="spellClear()">Reset</button>
       <button class="action-btn" onclick="spellHint()">💡 Hint</button>
       <button class="action-btn" onclick="spellReveal()">👁 Reveal</button>
-      <button class="action-btn" onclick="nextSpellItem()">Next →</button>
+      <button class="action-btn" onclick="spellNext()">Next →</button>
     </div>
     <div class="feedback" id="spell-feedback"></div>
     <div class="kbd-hint key-only">Type on your keyboard · <kbd>Backspace</kbd> to undo</div>
@@ -748,6 +748,10 @@ function getActivePool() {
 }
 
 function setCategory(cat) {
+  // A new question pool means a new run; otherwise switching filters is a free skip
+  endCurrentRun();
+  if (currentMode === 'quiz') resetQuizScore();
+  if (currentMode === 'spell') resetSpellScore();
   currentCategory = cat;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`filter-${cat}`).classList.add('active');
@@ -1443,6 +1447,13 @@ function spellHint() {
 function spellReveal() {
   if (spellLocked) return;
   revealSpellAnswer(`Answer: ${currentSpellItem.sci}`);
+}
+
+// In timed mode a skip is a give-up, otherwise you could skip hard names for a fresh timer
+function spellNext() {
+  if (practiceMode) return nextSpellItem();
+  if (spellLocked) return;
+  revealSpellAnswer(`Skipped · it was ${currentSpellItem.sci}`);
 }
 
 // Also used by the timer, which can fire mid-rewind, so it clears that pending rewind first
