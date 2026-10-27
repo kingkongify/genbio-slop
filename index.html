@@ -951,10 +951,11 @@ let quizQuestionTier = 0;
 // Difficulty climbs with the streak. pick: how wrong choices are chosen.
 const QUIZ_TIERS = [
   { at: 0,  name: 'Warm-up', secs: 10,  options: 4, pick: 'random',   bonus: 1,    color: '#43a047' },
-  { at: 10, name: 'Tier 1',  secs: 9,   options: 4, pick: 'category', bonus: 1.1,  color: '#1e88e5' },
-  { at: 25, name: 'Tier 2',  secs: 7.5, options: 6, pick: 'category', bonus: 1.25, color: '#8e24aa' },
-  { at: 50, name: 'Tier 3',  secs: 6,   options: 6, pick: 'similar',  bonus: 1.5,  color: '#f4511e' },
-  { at: 75, name: 'Tier 4',  secs: 5,   options: 8, pick: 'similar',  bonus: 2,    color: '#ffb300' },
+  { at: 10, name: 'Tier 1',  secs: 7,   options: 4, pick: 'category', bonus: 1.1,  color: '#1e88e5' },
+  { at: 25, name: 'Tier 2',  secs: 5,   options: 6, pick: 'category', bonus: 1.25, color: '#8e24aa' },
+  { at: 50, name: 'Tier 3',  secs: 4,   options: 6, pick: 'similar',  bonus: 1.5,  color: '#f4511e' },
+  { at: 75, name: 'Tier 4',  secs: 3,   options: 8, pick: 'similar',  bonus: 2,    color: '#ffb300' },
+  { at: 90, name: 'Tier 5',  secs: 2,   options: 8, pick: 'similar',  bonus: 2.5,  color: '#e91e63' },
 ];
 
 function quizTierIndex(streak) {
@@ -1093,7 +1094,7 @@ function nextQuizQuestion() {
   quizTimerInterval = setInterval(() => {
     const timeLeft = tier.secs - (Date.now() - startedAt) / 1000;
     timerBar.style.width = `${Math.max(0, (timeLeft / tier.secs) * 100)}%`;
-    if (timeLeft <= 2) timerBar.style.background = 'var(--danger)';
+    if (timeLeft <= tier.secs * 0.3) timerBar.style.background = 'var(--danger)';
     if (timeLeft <= 0) handleQuizAnswer(null, null); // Timeout counts as wrong
   }, 100);
 }
