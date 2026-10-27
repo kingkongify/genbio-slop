@@ -15,8 +15,8 @@ const BOARDS = {
   mastery: { score: 'leaderboard:mastery' },
 };
 
-// A name is mastered at 10 correct quiz answers + 2 clean spellings. Must match index.html.
-const QUIZ_GOAL = 10;
+// A name is mastered at 5 correct quiz answers + 2 clean spellings. Must match index.html.
+const QUIZ_GOAL = 5;
 const SPELL_GOAL = 2;
 
 function normalize(username) {
@@ -31,7 +31,9 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
 // progress: { "<itemId>": [quizCount, spellCount] }; deltas have the same shape
 function applyMasteryDeltas(progress, deltas) {
-  const next = { ...progress };
+  // Re-clamp everything so counts saved under an older, higher goal are brought in line
+  const next = Object.fromEntries(Object.entries(progress).map(([id, [q, s]]) =>
+    [id, [clamp(q, 0, QUIZ_GOAL), clamp(s, 0, SPELL_GOAL)]]));
   for (const [id, [dq, ds]] of Object.entries(deltas)) {
     const [q, s] = next[id] || [0, 0];
     next[id] = [clamp(q + dq, 0, QUIZ_GOAL), clamp(s + ds, 0, SPELL_GOAL)];

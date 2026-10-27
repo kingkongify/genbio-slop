@@ -238,10 +238,8 @@
   .spell-slot.bad { border-bottom-color: var(--danger); color: var(--danger); }
   .spell-slot.revealed { color: var(--accent-text); border-bottom-color: var(--accent); }
 
-  .spell-pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 520px; margin-bottom: 20px; }
-  .tile-btn { width: 40px; height: 42px; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.06); transition: all 0.1s; }
-  .tile-btn:active { transform: translateY(2px); }
-  .tile-btn.used { opacity: 0.2; pointer-events: none; }
+  .spell-input { width: 100%; max-width: 460px; padding: 12px 14px; margin-bottom: 16px; border: 2px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); font-size: 1.15rem; font-style: italic; text-align: center; }
+  .spell-input:focus { outline: none; border-color: var(--primary); }
 
   .spell-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
   .action-btn { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; background: var(--neutral-btn); color: var(--text); }
@@ -305,16 +303,14 @@
     .spell-answer-container { padding: 8px 4px; margin-bottom: 16px; gap: 10px 14px; }
     .spell-word { gap: 3px; }
     .spell-slot { flex-basis: 24px; height: 36px; font-size: 1.05rem; border-bottom-width: 2px; }
-    .spell-pool { gap: 6px; margin-bottom: 16px; }
-    .tile-btn { width: 42px; height: 46px; font-size: 1.15rem; }
-    .spell-actions { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+    .spell-input { font-size: 1rem; margin-bottom: 12px; }
+    .spell-actions { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; }
     .action-btn { padding: 12px 4px; font-size: 0.8rem; }
     .primary-btn { width: 100%; padding: 14px; }
   }
 
   @media (max-width: 360px) {
     .match-card { font-size: 0.64rem; min-height: 72px; }
-    .tile-btn { width: 38px; height: 44px; }
   }
 
   /* QUIZ DIFFICULTY TIERS */
@@ -366,7 +362,7 @@
   <header>
     <h1>🌿 BioMaster - CURIE </h1>
     <p>Memorize Philippine Flora & Fauna Scientific Names</p>
-    <div class="mastery-badge" id="mastery-badge" title="A name is mastered after 10 correct timed quiz answers and 2 clean timed spellings"></div>
+    <div class="mastery-badge" id="mastery-badge" title="A name is mastered after 5 correct timed quiz answers and 2 clean timed spellings in a row"></div>
     <button class="icon-btn secondary" id="account-btn" onclick="openAccountModal()" aria-label="Account">👤</button>
     <button class="icon-btn" id="sound-btn" onclick="toggleSound()" aria-label="Toggle sound">🔊</button>
   </header>
@@ -502,18 +498,19 @@
     <!-- Letter Slots -->
     <div class="spell-answer-container" id="spell-slots"></div>
 
-    <!-- Scrambled Letter Tiles -->
-    <div class="spell-pool" id="spell-pool"></div>
+    <input type="text" class="spell-input" id="spell-input" oninput="onSpellInput()"
+      placeholder="Type the scientific name…" aria-label="Type the scientific name"
+      autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
 
-    <div class="spell-actions">
-      <button class="action-btn" onclick="spellBackspace()">⌫ Backspace</button>
-      <button class="action-btn" onclick="spellClear()">Reset</button>
+    <!-- pointerdown preventDefault keeps focus in the box, so a phone keyboard stays open -->
+    <div class="spell-actions" onpointerdown="if (event.target.closest('button')) event.preventDefault()">
+      <button class="action-btn" onclick="spellClear()">Clear</button>
       <button class="action-btn" onclick="spellHint()">💡 Hint</button>
       <button class="action-btn" onclick="spellReveal()">👁 Reveal</button>
       <button class="action-btn" onclick="spellNext()">Next →</button>
     </div>
     <div class="feedback" id="spell-feedback"></div>
-    <div class="kbd-hint key-only">Type on your keyboard · <kbd>Backspace</kbd> to undo</div>
+    <div class="kbd-hint">Spaces and capital letters don't matter</div>
   </div>
 
   <!-- MODE 5: DICTIONARY LIST -->
@@ -1166,7 +1163,6 @@ function handleQuizAnswer(selectedId, selectedBtn) {
     playSound('wrong');
     if (selectedBtn) selectedBtn.classList.add('wrong');
     if (quizQuestionTier > 0) playOnce(document.getElementById('panel-quiz'), 'shake');
-    recordMastery(quizCurrentItem.id, -QUIZ_MISS_PENALTY, 0);
     lastSubmit = submitRun('quiz', quizScore);
     quizStreak = 0;
     const lost = !practiceMode && quizScore > 0 ? ' · score reset' : '';
@@ -1291,12 +1287,12 @@ function handleMatchClick(el) {
 }
 
 /* =====================================================================
-   MODE 4: SPELLING BEE (Anagram Letter Tiles)
+   MODE 4: SPELLING BEE (type the name from memory)
 ===================================================================== */
 let currentSpellItem = null;
 let targetLetters = [];  // full name, including spaces
 let targetChars = [];    // name without spaces (what the slots hold)
-let spelledTiles = [];   // tile buttons placed so far, in order
+let spelledChars = [];   // letters typed so far; spaces are optional and ignored
 let spellLocked = false;
 let spellSolved = 0;
 
@@ -1334,12 +1330,18 @@ function nextSpellItem() {
 
   targetLetters = currentSpellItem.sci.split('');
   targetChars = targetLetters.filter(c => c !== ' ');
-  spelledTiles = [];
+  spelledChars = [];
   spellLocked = false;
   spellHintUsed = false;
   spellMistyped = false;
   renderSpellUI();
+  document.getElementById('spell-input').value = '';
+  focusSpellInput();
   if (!practiceMode) startSpellTimer();
+}
+
+function focusSpellInput() {
+  if (currentMode === 'spell') document.getElementById('spell-input').focus({ preventScroll: true });
 }
 
 function startSpellTimer() {
@@ -1377,18 +1379,6 @@ function renderSpellUI() {
     });
     slotsContainer.appendChild(wordEl);
   });
-
-  // Render pool of scrambled tiles (only non-space characters)
-  const poolContainer = document.getElementById('spell-pool');
-  poolContainer.innerHTML = '';
-  shuffleArray(targetChars).forEach(char => {
-    const btn = document.createElement('button');
-    btn.className = 'tile-btn';
-    btn.innerText = char;
-    btn.dataset.char = char;
-    btn.onclick = () => addSpellLetter(btn);
-    poolContainer.appendChild(btn);
-  });
 }
 
 function getLetterSlots() {
@@ -1397,25 +1387,36 @@ function getLetterSlots() {
 
 function updateSpellSlots() {
   getLetterSlots().forEach((slot, i) => {
-    const tile = spelledTiles[i];
-    // Show the target's casing when the letter is right, so "b" and "B" tiles are interchangeable
-    slot.innerText = !tile ? '' : sameChar(tile.dataset.char, targetChars[i]) ? targetChars[i] : tile.dataset.char;
+    const c = spelledChars[i];
+    // Show the target's casing when the letter is right, so case never matters
+    slot.innerText = c === undefined ? '' : sameChar(c, targetChars[i]) ? targetChars[i] : c;
     slot.classList.remove('ok', 'bad', 'revealed');
   });
 }
 
-function addSpellLetter(btn) {
-  if (spellLocked || spelledTiles.length >= targetChars.length) return;
+// Write the accepted letters back into the box, with spaces where the name has them
+function syncSpellInput() {
+  let out = '';
+  let n = 0;
+  for (const ch of targetLetters) {
+    if (n >= spelledChars.length) break;
+    if (ch === ' ') { out += ' '; continue; }
+    out += spelledChars[n++];
+  }
+  document.getElementById('spell-input').value = out;
+}
 
-  playSound('flip');
-  spelledTiles.push(btn);
-  btn.classList.add('used');
-
+function onSpellInput() {
+  if (spellLocked || !currentSpellItem) { syncSpellInput(); return; }
+  const input = document.getElementById('spell-input');
+  const typed = input.value.replace(/\s+/g, '').split('').slice(0, targetChars.length);
+  if (typed.length > spelledChars.length) playSound('flip');
+  spelledChars = typed;
   updateSpellSlots();
-  const i = spelledTiles.length - 1;
-  if (!practiceMode && !sameChar(btn.dataset.char, targetChars[i])) {
-    spellMistype(i);
-    return;
+
+  if (!practiceMode) {
+    const wrongAt = firstWrongIndex();
+    if (wrongAt !== -1) { spellMistype(wrongAt); return; }
   }
   checkSpelling();
 }
@@ -1423,8 +1424,11 @@ function addSpellLetter(btn) {
 // Timed mode: any wrong letter wipes the run score, then the letter is taken back
 function spellMistype(i) {
   spellMistyped = true;
+  recordMastery(currentSpellItem.id, 0, -SPELL_GOAL);
   playSound('wrong');
   spellLocked = true;
+  spelledChars = spelledChars.slice(0, i + 1);
+  updateSpellSlots();
   getLetterSlots()[i].classList.add('bad');
   const lost = spellScore > 0;
   lastSubmit = submitRun('spell', spellScore);
@@ -1433,62 +1437,50 @@ function spellMistype(i) {
   updateSpellHud();
   setSpellFeedback(lost ? '✗ Wrong letter · score reset' : '✗ Wrong letter', 'bad');
   later(() => {
-    removeLastLetter();
+    spelledChars = spelledChars.slice(0, i);
     spellLocked = false;
     updateSpellSlots();
+    syncSpellInput();
   }, 600);
 }
 
-function removeLastLetter() {
-  const tile = spelledTiles.pop();
-  if (tile) tile.classList.remove('used');
-}
-
-function spellBackspace() {
-  if (spellLocked || spelledTiles.length === 0) return;
-  removeLastLetter();
-  updateSpellSlots();
-}
-
 function spellClear() {
+  focusSpellInput();
   if (spellLocked) return;
-  while (spelledTiles.length) removeLastLetter();
+  spelledChars = [];
   updateSpellSlots();
+  syncSpellInput();
 }
 
 function firstWrongIndex() {
-  return spelledTiles.findIndex((tile, i) => !sameChar(tile.dataset.char, targetChars[i]));
-}
-
-function findUnusedTile(char) {
-  const tiles = [...document.querySelectorAll('.tile-btn:not(.used)')];
-  return tiles.find(b => b.dataset.char === char) || tiles.find(b => sameChar(b.dataset.char, char));
+  return spelledChars.findIndex((c, i) => !sameChar(c, targetChars[i]));
 }
 
 function spellHint() {
+  focusSpellInput();
   if (spellLocked) return;
   spellHintUsed = true;
 
-  // Drop any wrong letters first, then place the next correct one
+  // Drop any wrong letters first, then add the next correct one
   const wrongAt = firstWrongIndex();
-  if (wrongAt !== -1) {
-    while (spelledTiles.length > wrongAt) removeLastLetter();
-    updateSpellSlots();
-  }
-
-  const neededChar = targetChars[spelledTiles.length];
-  if (neededChar === undefined) return;
-  const tile = findUnusedTile(neededChar);
-  if (tile) addSpellLetter(tile);
+  if (wrongAt !== -1) spelledChars = spelledChars.slice(0, wrongAt);
+  if (spelledChars.length >= targetChars.length) return;
+  spelledChars.push(targetChars[spelledChars.length]);
+  playSound('flip');
+  updateSpellSlots();
+  syncSpellInput();
+  checkSpelling();
 }
 
 function spellReveal() {
+  focusSpellInput();
   if (spellLocked) return;
   revealSpellAnswer(`Answer: ${currentSpellItem.sci}`);
 }
 
 // In timed mode a skip is a give-up, otherwise you could skip hard names for a fresh timer
 function spellNext() {
+  focusSpellInput();
   if (practiceMode) return nextSpellItem();
   if (spellLocked) return;
   revealSpellAnswer(`Skipped · it was ${currentSpellItem.sci}`);
@@ -1498,12 +1490,12 @@ function spellNext() {
 function revealSpellAnswer(message) {
   cancelPending();
   spellLocked = true;
+  recordMastery(currentSpellItem.id, 0, -SPELL_GOAL); // timeout / reveal / skip = failed this name
   getLetterSlots().forEach((slot, i) => {
     slot.innerText = targetChars[i];
     slot.classList.remove('ok', 'bad');
     slot.classList.add('revealed');
   });
-  document.querySelectorAll('.tile-btn').forEach(b => b.classList.add('used'));
   playSound('wrong');
   lastSubmit = submitRun('spell', spellScore);
   spellStreak = 0;
@@ -1514,7 +1506,7 @@ function revealSpellAnswer(message) {
 }
 
 function checkSpelling() {
-  if (spelledTiles.length < targetChars.length) return;
+  if (spelledChars.length < targetChars.length) return;
 
   const wrongAt = firstWrongIndex();
   const slots = getLetterSlots();
@@ -1548,12 +1540,13 @@ function checkSpelling() {
     // Show which letters are off, then rewind to the first mistake
     playSound('wrong');
     spellLocked = true;
-    slots.forEach((s, i) => s.classList.add(sameChar(spelledTiles[i].dataset.char, targetChars[i]) ? 'ok' : 'bad'));
+    slots.forEach((s, i) => s.classList.add(sameChar(spelledChars[i], targetChars[i]) ? 'ok' : 'bad'));
     setSpellFeedback('Not quite, fixing from the first wrong letter…', 'bad');
     later(() => {
-      while (spelledTiles.length > wrongAt) removeLastLetter();
+      spelledChars = spelledChars.slice(0, wrongAt);
       spellLocked = false;
       updateSpellSlots();
+      syncSpellInput();
       setSpellFeedback('', '');
     }, 1100);
   }
@@ -1580,16 +1573,9 @@ window.addEventListener('keydown', (e) => {
     const idx = Number(e.key) - 1;
     const btn = document.querySelectorAll('.quiz-opt-btn')[idx];
     if (btn && !btn.disabled) btn.click();
-  } else if (currentMode === 'spell') {
-    if (e.key === 'Backspace') {
-      e.preventDefault();
-      spellBackspace();
-    } else if (e.key.length === 1 && /[a-zA-Z-]/.test(e.key)) {
-      // Prefer the tile with the casing the next slot needs
-      const neededChar = targetChars[spelledTiles.length];
-      const tile = neededChar && sameChar(neededChar, e.key) ? findUnusedTile(neededChar) : findUnusedTile(e.key);
-      if (tile) addSpellLetter(tile);
-    }
+  } else if (currentMode === 'spell' && (e.key.length === 1 || e.key === 'Backspace')) {
+    // Typing anywhere goes into the answer box; focusing now lets this keystroke land in it
+    focusSpellInput();
   }
 });
 
@@ -1754,11 +1740,11 @@ function endCurrentRun(keepalive = false) {
 }
 
 /* =====================================================================
-   MASTERY: 10 correct quiz answers + 2 clean timed spellings per name
+   MASTERY: 5 correct quiz answers + 2 clean timed spellings in a row per name.
+   Quiz misses cost nothing; failing a name in spelling resets its spelling count.
 ===================================================================== */
-const QUIZ_GOAL = 10;  // must match api/_lib.js
+const QUIZ_GOAL = 5;   // must match api/_lib.js
 const SPELL_GOAL = 2;
-const QUIZ_MISS_PENALTY = 3;
 
 let mastery = {};      // id -> [quizCount, spellCount]
 let masteryDelta = {}; // changes not yet sent to the server, same shape
@@ -1768,8 +1754,12 @@ const clampNum = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const isMastered = id => { const [q, s] = mastery[id] || [0, 0]; return q >= QUIZ_GOAL && s >= SPELL_GOAL; };
 const masteredCount = () => DATA.filter(d => isMastered(d.id)).length;
 
+// Counts saved under an older, higher goal get brought down to the current one
+const clampProgress = p => Object.fromEntries(Object.entries(p).map(([id, [q, s]]) =>
+  [id, [clampNum(q, 0, QUIZ_GOAL), clampNum(s, 0, SPELL_GOAL)]]));
+
 function loadMastery() {
-  mastery = store.get(masteryStoreKey(), {});
+  mastery = clampProgress(store.get(masteryStoreKey(), {}));
   masteryDelta = store.get(masteryStoreKey() + ':pending', {});
   updateMasteryUI();
 }
@@ -1788,7 +1778,7 @@ function addDelta(id, dq, ds) {
 
 // Server copy is the truth; re-apply anything earned while the request was in flight
 function adoptServerMastery(serverProgress) {
-  const merged = { ...serverProgress };
+  const merged = clampProgress(serverProgress);
   for (const [id, [dq, ds]] of Object.entries(masteryDelta)) {
     const [q, s] = merged[id] || [0, 0];
     merged[id] = [clampNum(q + dq, 0, QUIZ_GOAL), clampNum(s + ds, 0, SPELL_GOAL)];
@@ -1867,7 +1857,7 @@ function setBoard(board) {
 const BOARD_TEXT = {
   quiz: ['🏆 Weekly Leaderboard', "Timed ranked games only · an entry expires 7 days after that player's last game"],
   spell: ['🏆 Weekly Leaderboard', "Timed ranked games only · an entry expires 7 days after that player's last game"],
-  mastery: ['🎓 Mastery', `All-time · a name is mastered after ${QUIZ_GOAL} correct timed quiz answers and ${SPELL_GOAL} clean timed spellings`],
+  mastery: ['🎓 Mastery', `All-time · a name is mastered after ${QUIZ_GOAL} correct timed quiz answers and ${SPELL_GOAL} clean timed spellings in a row`],
 };
 
 async function loadLeaderboard() {
