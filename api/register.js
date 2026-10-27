@@ -25,9 +25,10 @@ module.exports = async (req, res) => {
     if (existing.pinHash !== pinHash) {
       return res.status(401).json({ ok: false, error: "That username is taken and the PIN doesn't match." });
     }
-    return res.status(200).json({ ok: true, username: existing.name, created: false });
+    const mastery = (await redis.get(`mastery:${key}`)) || {};
+    return res.status(200).json({ ok: true, username: existing.name, created: false, mastery });
   }
 
   await redis.hset(accountKey, { name, pinHash, createdAt: Date.now() });
-  return res.status(200).json({ ok: true, username: name, created: true });
+  return res.status(200).json({ ok: true, username: name, created: true, mastery: {} });
 };

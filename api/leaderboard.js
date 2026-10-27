@@ -6,11 +6,13 @@ module.exports = async (req, res) => {
   const board = BOARDS[(req.query && req.query.mode) || 'quiz'];
   if (!board) return res.status(400).json({ ok: false, error: 'Unknown leaderboard.' });
 
-  // Prune anyone whose last submission on this board is older than a week.
-  const stale = await redis.zrange(board.ts, 0, Date.now() - WEEK_MS, { byScore: true });
-  if (stale && stale.length) {
-    await redis.zrem(board.score, ...stale);
-    await redis.zrem(board.ts, ...stale);
+  // Prune anyone whose last submission on this board is older than a week (weekly boards only).
+  if (board.ts) {
+    const stale = await redis.zrange(board.ts, 0, Date.now() - WEEK_MS, { byScore: true });
+    if (stale && stale.length) {
+      await redis.zrem(board.score, ...stale);
+      await redis.zrem(board.ts, ...stale);
+    }
   }
 
   const raw = await redis.zrange(board.score, 0, 19, { rev: true, withScores: true });

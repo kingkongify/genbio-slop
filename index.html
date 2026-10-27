@@ -101,6 +101,9 @@
   .leaderboard-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid transparent; background: var(--surface-2); margin-bottom: 6px; width: 100%; box-sizing: border-box; }
   .leaderboard-row.me { background: var(--hover-bg); border-color: var(--primary-light); }
   .lb-empty { color: var(--text-muted); text-align: center; margin: 16px 0; }
+  .mastery-badge { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: var(--primary); background: var(--success-bg); }
+  .mastery-badge:empty { display: none; }
+  .fc-mastery { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin: -2px 0 6px; min-height: 1.1em; }
 
   /* TIMED / PRACTICE + BOARD TOGGLES */
   .seg-toggle { display: inline-flex; background: var(--nav-bg); border-radius: 999px; padding: 3px; gap: 2px; }
@@ -348,6 +351,7 @@
   <header>
     <h1>🌿 BioMaster - CURIE </h1>
     <p>Memorize Philippine Flora & Fauna Scientific Names</p>
+    <div class="mastery-badge" id="mastery-badge" title="A name is mastered after 10 correct timed quiz answers and 2 clean timed spellings"></div>
     <button class="icon-btn secondary" id="account-btn" onclick="openAccountModal()" aria-label="Account">👤</button>
     <button class="icon-btn" id="sound-btn" onclick="toggleSound()" aria-label="Toggle sound">🔊</button>
   </header>
@@ -377,6 +381,7 @@
 
     <div id="fc-study" style="display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 16px;">
       <div class="tag" id="fc-tag">Animal</div>
+      <div class="fc-mastery" id="fc-mastery"></div>
       <div class="flashcard-wrapper" id="fc-wrapper" role="button" tabindex="0" aria-label="Flip card" onclick="onCardClick()">
         <div class="flashcard" id="main-flashcard">
           <!-- Front -->
@@ -498,12 +503,13 @@
   <!-- MODE 5: LEADERBOARD -->
   <div class="view-panel" id="panel-leaderboard">
     <div class="lb-header">
-      <h2>🏆 Weekly Leaderboard</h2>
-      <p>Timed ranked games only · an entry expires 7 days after that player's last game</p>
+      <h2 id="lb-title">🏆 Weekly Leaderboard</h2>
+      <p id="lb-subtitle">Timed ranked games only · an entry expires 7 days after that player's last game</p>
     </div>
     <div class="seg-toggle" id="board-toggle">
       <button data-board="quiz" onclick="setBoard('quiz')">⚡ Quiz</button>
       <button data-board="spell" onclick="setBoard('spell')">✍️ Spelling</button>
+      <button data-board="mastery" onclick="setBoard('mastery')">🎓 Mastery</button>
     </div>
     <div id="leaderboard-list"></div>
     <button class="action-btn" style="padding: 10px 18px;" onclick="loadLeaderboard()">🔄 Refresh</button>
@@ -871,6 +877,7 @@ function renderNextCard() {
   setTag('fc-tag', currentCard.type);
   document.getElementById('fc-front').innerText = currentCard.local;
   document.getElementById('fc-back').innerText = currentCard.sci;
+  document.getElementById('fc-mastery').innerText = masteryLabel(currentCard.id);
 }
 
 function leitnerAnswer(gotIt) {
@@ -1126,12 +1133,14 @@ function handleQuizAnswer(selectedId, selectedBtn) {
     quizStreak++;
     const points = Math.round(100 * getMultiplier(quizStreak) * QUIZ_TIERS[quizQuestionTier].bonus);
     quizScore += points;
-    feedback.innerText = `✓ Correct! +${points}`;
+    const mastered = recordMastery(quizCurrentItem.id, 1, 0);
+    feedback.innerText = `✓ Correct! +${points}${mastered ? ' · 🎓 Mastered!' : ''}`;
     feedback.className = 'feedback good';
   } else {
     playSound('wrong');
     if (selectedBtn) selectedBtn.classList.add('wrong');
     if (quizQuestionTier > 0) playOnce(document.getElementById('panel-quiz'), 'shake');
+    recordMastery(quizCurrentItem.id, -QUIZ_MISS_PENALTY, 0);
     lastSubmit = submitRun('quiz', quizScore);
     quizStreak = 0;
     const lost = !practiceMode && quizScore > 0 ? ' · score reset' : '';
@@ -1269,6 +1278,7 @@ let spellSolved = 0;
 let spellTimerInterval = null;
 let spellDeadline = 0;
 let spellHintUsed = false;
+let spellMistyped = false; // a word only counts toward mastery if spelled clean
 let spellStreak = 0;
 let spellScore = 0;
 let spellBest = store.get('spellBest', 0);
@@ -1301,6 +1311,7 @@ function nextSpellItem() {
   spelledTiles = [];
   spellLocked = false;
   spellHintUsed = false;
+  spellMistyped = false;
   renderSpellUI();
   if (!practiceMode) startSpellTimer();
 }
@@ -1385,6 +1396,7 @@ function addSpellLetter(btn) {
 
 // Timed mode: any wrong letter wipes the run score, then the letter is taken back
 function spellMistype(i) {
+  spellMistyped = true;
   playSound('wrong');
   spellLocked = true;
   getLetterSlots()[i].classList.add('bad');
@@ -1502,7 +1514,8 @@ function checkSpelling() {
         store.set('spellBest', spellBest);
       }
       updateSpellHud();
-      setSpellFeedback(`✓ Perfect! +${points}${spellHintUsed ? ' (hint: half points)' : ''}`, 'good');
+      const mastered = !spellHintUsed && !spellMistyped && recordMastery(currentSpellItem.id, 0, 1);
+      setSpellFeedback(`✓ Perfect! +${points}${spellHintUsed ? ' (hint: half points)' : ''}${mastered ? ' · 🎓 Mastered!' : ''}`, 'good');
     }
     later(nextSpellItem, 1200);
   } else {
@@ -1601,6 +1614,7 @@ function logoutAccount() {
   store.set('playMode', null);
   hideModal('modal-choice');
   updateAccountIndicator();
+  loadMastery();
 }
 
 async function submitRegister(event) {
@@ -1627,6 +1641,8 @@ async function submitRegister(event) {
     store.set('playMode', playMode);
     hideModal('modal-register');
     updateAccountIndicator();
+    loadMastery();
+    adoptServerMastery(data.mastery || {});
     if (currentMode === 'quiz') { resetQuizScore(); startMode(); }
     if (currentMode === 'spell') { resetSpellScore(); startMode(); }
   } catch (e) {
@@ -1655,27 +1671,132 @@ let lastSubmit = Promise.resolve();
 const SEASON = 2;
 const BEST_TTL_MS = 7 * 24 * 60 * 60 * 1000; // matches the server's 7-day expiry
 
-function submitRun(mode, runScore, keepalive = false) {
-  if (playMode !== 'ranked' || !account || practiceMode || runScore <= 0) return Promise.resolve();
+// Mastery progress rides along with these requests, at most every 2 minutes on a mistake,
+// and always when the player leaves the mode (force).
+const MASTERY_SYNC_MS = 2 * 60 * 1000;
+let lastMasterySync = 0;
+
+function submitRun(mode, runScore, keepalive = false, force = false) {
+  if (playMode !== 'ranked' || !account) return Promise.resolve();
+
   const bestKey = `rankedBest:${SEASON}:${mode}:${account.username.toLowerCase()}`;
   const saved = store.get(bestKey, null);
   const prevBest = saved && Date.now() - saved.at < BEST_TTL_MS ? saved.score : 0;
-  if (runScore <= prevBest) return Promise.resolve();
-  store.set(bestKey, { score: runScore, at: Date.now() }); // set first so a repeat call for the same run is a no-op
+  const isRecord = !practiceMode && runScore > 0 && runScore > prevBest;
+
+  const hasDeltas = Object.keys(masteryDelta).length > 0;
+  const sendMastery = hasDeltas && (force || isRecord || Date.now() - lastMasterySync > MASTERY_SYNC_MS);
+  if (!isRecord && !sendMastery) return Promise.resolve();
+
+  // Commit optimistically so a repeat call for the same run is a no-op; undone on failure
+  if (isRecord) store.set(bestKey, { score: runScore, at: Date.now() });
+  const sentDeltas = sendMastery ? masteryDelta : null;
+  if (sendMastery) {
+    masteryDelta = {};
+    saveMastery();
+    lastMasterySync = Date.now();
+  }
+
+  const body = { username: account.username, pin: account.pin, mode };
+  if (isRecord) body.score = runScore;
+  if (sentDeltas) body.mastery = sentDeltas;
+  const sentFor = account.username;
+
   return fetch('/api/score', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: account.username, pin: account.pin, score: runScore, mode }),
+    body: JSON.stringify(body),
     keepalive
-  }).then(r => { if (!r.ok) store.set(bestKey, saved); })
-    .catch(() => store.set(bestKey, saved));
+  }).then(r => r.json()).then(data => {
+    if (!data.ok) throw new Error(data.error);
+    if (data.mastery && account && account.username === sentFor) adoptServerMastery(data.mastery);
+  }).catch(() => {
+    if (isRecord) store.set(bestKey, saved);
+    if (sentDeltas && account && account.username === sentFor) {
+      for (const [id, [dq, ds]] of Object.entries(sentDeltas)) addDelta(id, dq, ds);
+      saveMastery();
+    }
+  });
 }
 
 // Leaving a run without a mistake (tab switch, practice toggle, closing the page) still counts
 function endCurrentRun(keepalive = false) {
-  if (currentMode === 'quiz') lastSubmit = submitRun('quiz', quizScore, keepalive);
-  if (currentMode === 'spell') lastSubmit = submitRun('spell', spellScore, keepalive);
+  if (currentMode === 'quiz') lastSubmit = submitRun('quiz', quizScore, keepalive, true);
+  else if (currentMode === 'spell') lastSubmit = submitRun('spell', spellScore, keepalive, true);
+  else if (Object.keys(masteryDelta).length) lastSubmit = submitRun('quiz', 0, keepalive, true);
   return lastSubmit;
+}
+
+/* =====================================================================
+   MASTERY: 10 correct quiz answers + 2 clean timed spellings per name
+===================================================================== */
+const QUIZ_GOAL = 10;  // must match api/_lib.js
+const SPELL_GOAL = 2;
+const QUIZ_MISS_PENALTY = 3;
+
+let mastery = {};      // id -> [quizCount, spellCount]
+let masteryDelta = {}; // changes not yet sent to the server, same shape
+
+const masteryStoreKey = () => `mastery:${account ? account.username.toLowerCase() : 'guest'}`;
+const clampNum = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+const isMastered = id => { const [q, s] = mastery[id] || [0, 0]; return q >= QUIZ_GOAL && s >= SPELL_GOAL; };
+const masteredCount = () => DATA.filter(d => isMastered(d.id)).length;
+
+function loadMastery() {
+  mastery = store.get(masteryStoreKey(), {});
+  masteryDelta = store.get(masteryStoreKey() + ':pending', {});
+  updateMasteryUI();
+}
+
+function saveMastery() {
+  store.set(masteryStoreKey(), mastery);
+  store.set(masteryStoreKey() + ':pending', masteryDelta);
+}
+
+function addDelta(id, dq, ds) {
+  const [pq, ps] = masteryDelta[id] || [0, 0];
+  const next = [pq + dq, ps + ds];
+  if (next[0] === 0 && next[1] === 0) delete masteryDelta[id];
+  else masteryDelta[id] = next;
+}
+
+// Server copy is the truth; re-apply anything earned while the request was in flight
+function adoptServerMastery(serverProgress) {
+  const merged = { ...serverProgress };
+  for (const [id, [dq, ds]] of Object.entries(masteryDelta)) {
+    const [q, s] = merged[id] || [0, 0];
+    merged[id] = [clampNum(q + dq, 0, QUIZ_GOAL), clampNum(s + ds, 0, SPELL_GOAL)];
+  }
+  mastery = merged;
+  saveMastery();
+  updateMasteryUI();
+}
+
+// Returns true if this answer just completed mastery of the name
+function recordMastery(id, dq, ds) {
+  if (practiceMode) return false;
+  const was = isMastered(id);
+  const [q, s] = mastery[id] || [0, 0];
+  const nq = clampNum(q + dq, 0, QUIZ_GOAL);
+  const ns = clampNum(s + ds, 0, SPELL_GOAL);
+  if (nq === q && ns === s) return false;
+  mastery[id] = [nq, ns];
+  addDelta(id, nq - q, ns - s);
+  saveMastery();
+  updateMasteryUI();
+  return !was && isMastered(id);
+}
+
+function masteryLabel(id) {
+  const [q, s] = mastery[id] || [0, 0];
+  return isMastered(id) ? '🎓 Mastered' : `⚡ ${q}/${QUIZ_GOAL} · ✍️ ${s}/${SPELL_GOAL}`;
+}
+
+function updateMasteryUI() {
+  document.getElementById('mastery-badge').innerText = `🎓 ${masteredCount()}/${DATA.length} mastered`;
+  if (currentCard) {
+    document.getElementById('fc-mastery').innerText = masteryLabel(currentCard.id);
+  }
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -1694,9 +1815,17 @@ function setBoard(board) {
   loadLeaderboard();
 }
 
+const BOARD_TEXT = {
+  quiz: ['🏆 Weekly Leaderboard', "Timed ranked games only · an entry expires 7 days after that player's last game"],
+  spell: ['🏆 Weekly Leaderboard', "Timed ranked games only · an entry expires 7 days after that player's last game"],
+  mastery: ['🎓 Mastery', `All-time · a name is mastered after ${QUIZ_GOAL} correct timed quiz answers and ${SPELL_GOAL} clean timed spellings`],
+};
+
 async function loadLeaderboard() {
   const board = currentBoard;
   document.querySelectorAll('#board-toggle button').forEach(b => b.classList.toggle('active', b.dataset.board === board));
+  document.getElementById('lb-title').innerText = BOARD_TEXT[board][0];
+  document.getElementById('lb-subtitle').innerText = BOARD_TEXT[board][1];
   const list = document.getElementById('leaderboard-list');
   list.innerHTML = '<p class="lb-empty">Loading…</p>';
   try {
@@ -1704,16 +1833,19 @@ async function loadLeaderboard() {
     const res = await fetch(`/api/leaderboard?mode=${board}`);
     const data = await res.json();
     if (board !== currentBoard) return; // user switched boards while this was loading
-    if (!data.ok || !data.entries || !data.entries.length) {
-      list.innerHTML = '<p class="lb-empty">No ranked scores yet this week — be the first!</p>';
+    const entries = data.ok && data.entries ? data.entries.filter(e => board !== 'mastery' || e.score > 0) : [];
+    if (!entries.length) {
+      list.innerHTML = board === 'mastery'
+        ? '<p class="lb-empty">Nobody has mastered a name yet — be the first!</p>'
+        : '<p class="lb-empty">No ranked scores yet this week — be the first!</p>';
       return;
     }
     const mine = account ? account.username.toLowerCase() : null;
-    list.innerHTML = data.entries.map(e => `
+    list.innerHTML = entries.map(e => `
       <div class="leaderboard-row ${mine && e.name.toLowerCase() === mine ? 'me' : ''}">
         <span class="lb-rank">#${e.rank}</span>
         <span class="lb-name">${escapeHtml(e.name)}</span>
-        <span class="lb-score">${e.score}</span>
+        <span class="lb-score">${board === 'mastery' ? `${e.score}/${DATA.length}` : e.score}</span>
       </div>
     `).join('');
   } catch (e) {
@@ -1735,6 +1867,7 @@ applyPracticeUI();
 updateAccountIndicator();
 if (!playMode) showModal('modal-choice');
 initFlashcardMode();
+loadMastery();
 </script>
 </body>
 </html>
