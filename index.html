@@ -243,7 +243,8 @@
 
   .spell-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
   .action-btn { padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; background: var(--neutral-btn); color: var(--text); }
-  .action-btn:active { background: var(--neutral-btn-hover); }
+  .action-btn:active:not(:disabled) { background: var(--neutral-btn-hover); }
+  .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
   /* Utility Buttons */
   .primary-btn { background: var(--primary); color: var(--on-primary); padding: 10px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 12px; }
@@ -254,7 +255,7 @@
     .btn-gotit:hover:not(:disabled) { background: var(--success); color: var(--surface); }
     .quiz-opt-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--hover-bg); }
     .match-card:hover:not(.matched) { border-color: var(--primary-light); }
-    .action-btn:hover { background: var(--neutral-btn-hover); }
+    .action-btn:hover:not(:disabled) { background: var(--neutral-btn-hover); }
     .primary-btn:hover { background: var(--primary-light); }
   }
 
@@ -505,7 +506,7 @@
     <!-- pointerdown preventDefault keeps focus in the box, so a phone keyboard stays open -->
     <div class="spell-actions" onpointerdown="if (event.target.closest('button')) event.preventDefault()">
       <button class="action-btn" onclick="spellClear()">Clear</button>
-      <button class="action-btn" onclick="spellHint()">💡 Hint</button>
+      <button class="action-btn" id="spell-hint-btn" onclick="spellHint()">💡 Hint</button>
       <button class="action-btn" onclick="spellReveal()">👁 Reveal</button>
       <button class="action-btn" onclick="spellNext()">Next →</button>
     </div>
@@ -1300,6 +1301,7 @@ let spellSolved = 0;
 let spellTimerInterval = null;
 let spellDeadline = 0;
 let spellHintUsed = false;
+const HINT_COOLDOWN_MS = 2000;
 let spellMistyped = false; // a word only counts toward mastery if spelled clean
 let spellStreak = 0;
 let spellScore = 0;
@@ -1460,6 +1462,10 @@ function spellHint() {
   focusSpellInput();
   if (spellLocked) return;
   spellHintUsed = true;
+
+  const hintBtn = document.getElementById('spell-hint-btn');
+  hintBtn.disabled = true;
+  setTimeout(() => { hintBtn.disabled = false; }, HINT_COOLDOWN_MS);
 
   // Drop any wrong letters first, then add the next correct one
   const wrongAt = firstWrongIndex();
